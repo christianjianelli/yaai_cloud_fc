@@ -33,7 +33,7 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
       WHEN 'CHAR'.
 
         IF i_length IS INITIAL.
-          e_error = |The ABAP built in type { l_data_type } requires a length.|.
+          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
           RETURN.
         ENDIF.
 
@@ -54,7 +54,7 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
       WHEN 'DEC'.
 
         IF i_length IS INITIAL.
-          e_error = |The ABAP built in type { l_data_type } requires a length.|.
+          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
           RETURN.
         ENDIF.
 
@@ -63,7 +63,7 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
       WHEN 'NUMC'.
 
         IF i_length IS INITIAL.
-          e_error = |The ABAP built in type { l_data_type } requires a length.|.
+          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
           RETURN.
         ENDIF.
 
@@ -72,7 +72,7 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
       WHEN 'QUAN'.
 
         IF i_length IS INITIAL.
-          e_error = |The ABAP built in type { l_data_type } requires a length.|.
+          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
           RETURN.
         ENDIF.
 
@@ -93,7 +93,7 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
       WHEN 'CURR'.
 
         IF i_length IS INITIAL.
-          e_error = |The ABAP built in type { l_data_type } requires a length.|.
+          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
           RETURN.
         ENDIF.
 

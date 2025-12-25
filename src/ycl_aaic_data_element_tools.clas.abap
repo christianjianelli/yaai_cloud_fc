@@ -36,8 +36,8 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
     CLEAR r_response.
 
     IF i_domain_name IS INITIAL AND i_data_type IS INITIAL.
-      r_response = 'You must either inform an ABAP Domain or an ABAP built in type.' && cl_abap_char_utilities=>newline.
-      r_response = 'The ABAP built in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
+      r_response = 'You must specify either an ABAP Data Element or an ABAP built-in type.' && cl_abap_char_utilities=>newline.
+      r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
       RETURN.
     ENDIF.
 
@@ -65,8 +65,8 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
       ENDIF.
 
       IF lo_format IS NOT BOUND.
-        r_response = 'The ABAP built in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
-        r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built in types are allowed. { r_response }|.
+        r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
+        r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { r_response }|.
         RETURN.
       ENDIF.
 
@@ -98,7 +98,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     IF l_contain_errors = abap_false.
 
-      r_response = |Data element `{ l_data_element_name }` created successfully!|.
+      r_response = |Data Element `{ l_data_element_name }` created successfully!|.
 
     ELSE.
 

@@ -66,7 +66,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     ENDIF.
 
     IF lo_format IS NOT BOUND.
-      r_response = 'The ABAP built in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
+      r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
       r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built in types are allowed. { r_response }|.
       RETURN.
     ENDIF.
