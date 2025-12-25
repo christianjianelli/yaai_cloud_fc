@@ -7,23 +7,13 @@ CLASS ycl_aaic_ddic_structure_tools DEFINITION
 
     INTERFACES if_oo_adt_classrun.
 
-    TYPES: BEGIN OF ty_components_s,
-             field_name   TYPE yde_aaic_fc_fieldname,
-             data_element TYPE yde_aaic_fc_data_element,
-             data_type    TYPE yde_aaic_fc_data_type,
-             length       TYPE yde_aaic_fc_length,
-             decimals     TYPE yde_aaic_fc_decimals,
-           END OF  ty_components_s,
-
-           ty_components_t TYPE STANDARD TABLE OF ty_components_s WITH DEFAULT KEY.
-
     METHODS create
       IMPORTING
-                i_structure_name    TYPE string
-                i_description       TYPE string
-                i_transport_request TYPE string
-                i_package           TYPE string
-                i_t_components      TYPE ty_components_t
+                i_structure_name    TYPE yde_aaic_fc_structure_name
+                i_description       TYPE yde_aaic_fc_description
+                i_transport_request TYPE yde_aaic_fc_transport_request
+                i_package           TYPE yde_aaic_fc_package
+                i_t_components      TYPE ytt_aaic_fc_struct_fields
       RETURNING VALUE(r_response)   TYPE string.
 
   PROTECTED SECTION.

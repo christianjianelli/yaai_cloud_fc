@@ -10,13 +10,13 @@ CLASS ycl_aaic_domain_tools DEFINITION
     METHODS create
       IMPORTING
                 i_domain_name       TYPE string
-                i_description       TYPE string
-                i_data_type         TYPE string
-                i_length            TYPE i OPTIONAL
-                i_decimals          TYPE i OPTIONAL
-                i_case_sensitive    TYPE abap_boolean DEFAULT abap_false
-                i_transport_request TYPE string
-                i_package           TYPE string
+                i_description       TYPE yde_aaic_fc_description
+                i_data_type         TYPE yde_aaic_fc_data_type
+                i_length            TYPE yde_aaic_fc_length OPTIONAL
+                i_decimals          TYPE yde_aaic_fc_decimals OPTIONAL
+                i_case_sensitive    TYPE yde_aaic_fc_case_sensitive DEFAULT abap_false
+                i_transport_request TYPE yde_aaic_fc_transport_request
+                i_package           TYPE yde_aaic_fc_package
                 i_t_fixed_values    TYPE ytt_aaic_fc_domain_fixed_val OPTIONAL
       RETURNING VALUE(r_response)   TYPE string.
 
@@ -48,11 +48,11 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
       )->set_package( l_package
       )->create_form_specification( ).
 
-    lo_specification->set_short_description( CONV #( i_description ) ).
+    lo_specification->set_short_description( i_description ).
 
     NEW ycl_aaic_ddic_tools_util( )->determine_format(
       EXPORTING
-        i_data_type = i_data_type
+        i_data_type = CONV #( i_data_type )
         i_length    = i_length
         i_decimals  = i_decimals
       IMPORTING
@@ -67,7 +67,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     IF lo_format IS NOT BOUND.
       r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
-      r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built in types are allowed. { r_response }|.
+      r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { r_response }|.
       RETURN.
     ENDIF.
 

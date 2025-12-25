@@ -9,14 +9,14 @@ CLASS ycl_aaic_data_element_tools DEFINITION
 
     METHODS create
       IMPORTING
-                i_data_element_name TYPE string
-                i_description       TYPE string
-                i_domain_name       TYPE string OPTIONAL
-                i_data_type         TYPE string OPTIONAL
-                i_length            TYPE i OPTIONAL
-                i_decimals          TYPE i OPTIONAL
-                i_transport_request TYPE string
-                i_package           TYPE string
+                i_data_element_name TYPE yde_aaic_fc_data_element
+                i_description       TYPE yde_aaic_fc_description
+                i_domain_name       TYPE yde_aaic_fc_domain OPTIONAL
+                i_data_type         TYPE yde_aaic_fc_data_type OPTIONAL
+                i_length            TYPE yde_aaic_fc_length OPTIONAL
+                i_decimals          TYPE yde_aaic_fc_decimals OPTIONAL
+                i_transport_request TYPE yde_aaic_fc_transport_request
+                i_package           TYPE yde_aaic_fc_package
       RETURNING VALUE(r_response)   TYPE string.
 
   PROTECTED SECTION.
@@ -51,7 +51,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
       NEW ycl_aaic_ddic_tools_util( )->determine_format(
         EXPORTING
-          i_data_type = i_data_type
+          i_data_type = CONV #( i_data_type )
           i_length    = i_length
           i_decimals  = i_decimals
         IMPORTING
@@ -80,7 +80,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
       )->set_package( l_package
       )->create_form_specification( ).
 
-    lo_specification->set_short_description( CONV #( i_description ) ).
+    lo_specification->set_short_description( i_description ).
 
     IF l_domain_name IS NOT INITIAL.
 
