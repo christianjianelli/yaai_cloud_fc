@@ -118,7 +118,17 @@ CLASS ycl_aaic_ddic_table_tools IMPLEMENTATION.
 
     ENDIF.
 
-    DATA(lo_result) = lo_put_operation->execute( ).
+    TRY.
+
+        DATA(lo_result) = lo_put_operation->execute( ).
+
+      CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
+
+        r_response = |Error: { lo_cx_xco_gen_put_exception->get_text( ) }|.
+
+        RETURN.
+
+    ENDTRY.
 
     DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
 
