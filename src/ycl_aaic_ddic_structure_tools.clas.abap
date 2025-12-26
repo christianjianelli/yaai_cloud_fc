@@ -44,7 +44,7 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
       )->set_package( l_package
       )->create_form_specification( ).
 
-    lo_specification->set_short_description( CONV #( i_description ) ).
+    lo_specification->set_short_description(  i_description ).
 
     LOOP AT i_t_components INTO DATA(ls_component).
 
