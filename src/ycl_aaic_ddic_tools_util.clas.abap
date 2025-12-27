@@ -14,6 +14,9 @@ CLASS ycl_aaic_ddic_tools_util DEFINITION
         e_o_format  TYPE REF TO cl_xco_ad_built_in_type
         e_error     TYPE string.
 
+    METHODS get_built_in_types_supported
+      RETURNING VALUE(r_response) TYPE string.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -80,7 +83,9 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
 
       WHEN 'STRING'.
 
-        IF i_length > 0 AND i_length < 256.
+        IF i_length = 0.
+          e_o_format = xco_cp_abap_dictionary=>built_in_type->string( 0 ).
+        ELSEIF i_length > 0 AND i_length < 256.
           e_o_format = xco_cp_abap_dictionary=>built_in_type->string( CONV #( 256 ) ).
         ELSE.
           e_o_format = xco_cp_abap_dictionary=>built_in_type->string( CONV #( i_length ) ).
@@ -129,5 +134,12 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
 
     ENDCASE.
 
+  ENDMETHOD.
+
+  METHOD get_built_in_types_supported.
+    r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT.'.
+    r_response = |{ cl_abap_char_utilities=>newline }{ r_response }The types: CHAR AND NUMC require a length.|.
+    r_response = |{ cl_abap_char_utilities=>newline }{ r_response }The types: DEC, QUAN and CURR require a length and decimals, where decimals can be zero.|.
+    r_response = |{ cl_abap_char_utilities=>newline }{ r_response }The type STRING can have a length but it must be greater than or equal to 256, or 0 for a string with unlimited length.|.
   ENDMETHOD.
 ENDCLASS.

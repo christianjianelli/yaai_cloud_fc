@@ -15,12 +15,18 @@ CLASS ycl_aaic_data_element_tools DEFINITION
                 i_data_type         TYPE yde_aaic_fc_data_type OPTIONAL
                 i_length            TYPE yde_aaic_fc_length OPTIONAL
                 i_decimals          TYPE yde_aaic_fc_decimals OPTIONAL
+                i_label_short       TYPE yde_aaic_fc_short_label OPTIONAL
+                i_label_medium      TYPE yde_aaic_fc_medium_label OPTIONAL
+                i_label_long        TYPE yde_aaic_fc_long_label OPTIONAL
+                i_label_heading     TYPE yde_aaic_fc_heading_label OPTIONAL
                 i_transport_request TYPE yde_aaic_fc_transport_request
                 i_package           TYPE yde_aaic_fc_package
       RETURNING VALUE(r_response)   TYPE string.
 
   PROTECTED SECTION.
+
   PRIVATE SECTION.
+
 ENDCLASS.
 
 
@@ -36,8 +42,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
     CLEAR r_response.
 
     IF i_domain_name IS INITIAL AND i_data_type IS INITIAL.
-      r_response = 'You must specify either an ABAP Data Element or an ABAP built-in type.' && cl_abap_char_utilities=>newline.
-      r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
+      r_response = NEW ycl_aaic_ddic_tools_util( )->get_response_supported_types( ).
       RETURN.
     ENDIF.
 
@@ -82,6 +87,11 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     lo_specification->set_short_description( i_description ).
 
+    lo_specification->field_label-short->set_text( CONV #( i_label_short ) ).
+    lo_specification->field_label-medium->set_text( CONV #( i_label_medium ) ).
+    lo_specification->field_label-long->set_text( CONV #( i_label_long ) ).
+    lo_specification->field_label-heading->set_text( CONV #( i_label_heading ) ).
+
     IF l_domain_name IS NOT INITIAL.
 
       lo_specification->set_data_type( xco_cp_abap_dictionary=>domain( l_domain_name ) ).
@@ -96,35 +106,57 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
         DATA(lo_result) = lo_put_operation->execute( ).
 
-      CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
+        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
 
-        r_response = |Error: { lo_cx_xco_gen_put_exception->get_text( ) }|.
+        IF l_contain_errors = abap_false.
 
-        RETURN.
+          r_response = |Data Element `{ l_data_element_name }` created successfully!|.
 
-    ENDTRY.
+        ELSE.
 
-    DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
+          DATA(lt_findings) = lo_result->findings->get( ).
 
-    IF l_contain_errors = abap_false.
+          LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
 
-      r_response = |Data Element `{ l_data_element_name }` created successfully!|.
+            IF r_response IS NOT INITIAL.
+              r_response = r_response && cl_abap_char_utilities=>newline.
+            ENDIF.
 
-    ELSE.
+            LOOP AT <lo_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
 
-      DATA(lt_findings) = lo_result->findings->get( ).
+              r_response = r_response && <lo_message>->get_text( ).
 
-      LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+            ENDLOOP.
 
-        IF r_response IS NOT INITIAL.
-          r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDLOOP.
+
         ENDIF.
 
-        r_response = r_response && <ls_finding>->message->get_text( ).
+      CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
 
-      ENDLOOP.
+        l_contain_errors = abap_true.
 
-    ENDIF.
+        r_response = |Error! { lo_cx_xco_gen_put_exception->get_longtext( ) }|.
+
+        DATA(lo_findings) = lo_cx_xco_gen_put_exception->findings->for->dtel.
+
+        DATA(lt_findings_ex) = lo_findings->get( ).
+
+        LOOP AT lt_findings_ex ASSIGNING FIELD-SYMBOL(<lo_finding_ex>).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          LOOP AT <lo_finding_ex>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message_ex>).
+
+            r_response = r_response && <lo_message_ex>->get_text( ).
+
+          ENDLOOP.
+
+        ENDLOOP.
+
+    ENDTRY.
 
   ENDMETHOD.
 
@@ -134,10 +166,14 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
       EXPORTING
         i_data_element_name  = 'ZDS_CJS_EMAIL_FROM'
         i_description        = 'XCO Domain generation test'
-*        i_domain_name        = 'ZDO_CJS_EMAIL_FROM'
+*        i_domain_name        = 'ZDO_CJS_XPTO'
         i_data_type          = 'CHAR'
         i_length             = '100'
 *        i_decimals           = '3'
+        i_label_short        = 'Email'
+        i_label_medium       = 'Email From'
+        i_label_long         = 'Email From .'
+        i_label_heading      = 'Email From ...'
         i_transport_request  = 'TRLK900008'
         i_package            = 'ZCHRJS'
     ).

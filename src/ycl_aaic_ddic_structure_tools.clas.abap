@@ -50,11 +50,25 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
       ls_component-field_name = condense( to_upper( ls_component-field_name ) ).
 
+      ls_component-ref_field = condense( to_upper( ls_component-ref_field ) ).
+
       IF ls_component-data_element IS NOT INITIAL.
 
         ls_component-data_element = condense( to_upper( ls_component-data_element ) ).
 
-        lo_specification->add_component( ls_component-field_name )->set_type( xco_cp_abap_dictionary=>data_element( ls_component-data_element ) ).
+        IF ls_component-ref_field IS INITIAL.
+
+          lo_specification->add_component( ls_component-field_name
+            )->set_type( xco_cp_abap_dictionary=>data_element( ls_component-data_element ) ).
+
+        ELSE.
+
+          lo_specification->add_component( ls_component-field_name
+            )->set_type( xco_cp_abap_dictionary=>data_element( ls_component-data_element )
+            )->currency_quantity->set_reference_field( ls_component-ref_field
+            )->set_reference_table( l_structure_name ).
+
+        ENDIF.
 
         CONTINUE.
 
@@ -63,6 +77,8 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
       IF ls_component-data_type IS NOT INITIAL.
 
         ls_component-data_type = condense( to_upper( ls_component-data_type ) ).
+
+        ls_component-ref_field = condense( to_upper( ls_component-ref_field ) ).
 
         NEW ycl_aaic_ddic_tools_util( )->determine_format(
           EXPORTING
@@ -76,7 +92,17 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
         IF lo_format IS BOUND.
 
-          lo_specification->add_component( ls_component-field_name )->set_type( lo_format ).
+          IF ls_component-ref_field IS INITIAL.
+
+            lo_specification->add_component( ls_component-field_name )->set_type( lo_format ).
+
+          ELSE.
+
+            lo_specification->add_component( ls_component-field_name )->set_type( lo_format
+              )->currency_quantity->set_reference_field( ls_component-ref_field
+              )->set_reference_table( l_structure_name ).
+
+          ENDIF.
 
           CONTINUE.
 
@@ -107,35 +133,53 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
         DATA(lo_result) = lo_put_operation->execute( ).
 
-      CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
+        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
 
-        r_response = |Error: { lo_cx_xco_gen_put_exception->get_text( ) }|.
+        IF l_contain_errors = abap_false.
 
-        RETURN.
+          r_response = |Structure `{ l_structure_name }` created successfully!|.
 
-    ENDTRY.
+        ELSE.
 
-    DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
+          DATA(lt_findings) = lo_result->findings->get( ).
 
-    IF l_contain_errors = abap_false.
+          LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
 
-      r_response = |Structure `{ l_structure_name }` created successfully!|.
+            IF r_response IS NOT INITIAL.
+              r_response = r_response && cl_abap_char_utilities=>newline.
+            ENDIF.
 
-    ELSE.
+            r_response = r_response && <lo_finding>->message->get_text( ).
 
-      DATA(lt_findings) = lo_result->findings->get( ).
+          ENDLOOP.
 
-      LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
-
-        IF r_response IS NOT INITIAL.
-          r_response = r_response && cl_abap_char_utilities=>newline.
         ENDIF.
 
-        r_response = r_response && <ls_finding>->message->get_text( ).
+      CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
 
-      ENDLOOP.
+        l_contain_errors = abap_true.
 
-    ENDIF.
+        r_response = |Error! { lo_cx_xco_gen_put_exception->get_longtext( ) }|.
+
+        DATA(lo_findings) = lo_cx_xco_gen_put_exception->findings->for->tabl.
+
+        DATA(lt_findings_ex) = lo_findings->get( ).
+
+        LOOP AT lt_findings_ex ASSIGNING FIELD-SYMBOL(<lo_finding_ex>).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          LOOP AT <lo_finding_ex>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+
+            r_response = r_response && <lo_message>->get_text( ).
+
+          ENDLOOP.
+
+        ENDLOOP.
+
+    ENDTRY.
 
   ENDMETHOD.
 
@@ -148,7 +192,11 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
         i_transport_request = 'TRLK900008'
         i_package           = 'ZCHRJS'
         i_t_components      = VALUE #( ( field_name = 'FIELD1' data_element = 'ZDS_CJS_EMAIL_FROM' )
-                                       ( field_name = 'FIELD2' data_type = 'CHAR' length = '30' ) )
+                                       ( field_name = 'FIELD2' data_type = 'CHAR' length = '30' )
+                                       ( field_name = 'FIELD3' data_type = 'QUAN' length = '10' decimals = 3 ref_field = 'FIELD4' )
+                                       ( field_name = 'FIELD4' data_type = 'UNIT' )
+                                       ( field_name = 'FIELD5' data_type = 'CURR' length = '13' decimals = 2 ref_field = 'FIELD6' )
+                                       ( field_name = 'FIELD6' data_type = 'CUKY' ) )
     ).
 
     out->write( l_response ).
