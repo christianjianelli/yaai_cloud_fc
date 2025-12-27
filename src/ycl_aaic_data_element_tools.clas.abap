@@ -42,7 +42,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
     CLEAR r_response.
 
     IF i_domain_name IS INITIAL AND i_data_type IS INITIAL.
-      r_response = NEW ycl_aaic_ddic_tools_util( )->get_response_supported_types( ).
+      r_response = |You must specify either an ABAP Domain or an ABAP built-in type. { NEW ycl_aaic_ddic_tools_util( )->get_built_in_types_response( ) }|.
       RETURN.
     ENDIF.
 
@@ -70,8 +70,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
       ENDIF.
 
       IF lo_format IS NOT BOUND.
-        r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
-        r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { r_response }|.
+        r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { NEW ycl_aaic_ddic_tools_util( )->get_built_in_types_response( ) }|.
         RETURN.
       ENDIF.
 

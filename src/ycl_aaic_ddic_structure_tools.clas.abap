@@ -122,7 +122,7 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
       IF r_response IS INITIAL.
         r_response = 'For each structure field, you must specify either an ABAP Data Element or an ABAP built-in type.' && cl_abap_char_utilities=>newline.
-        r_response = r_response && 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
+        r_response = r_response && NEW ycl_aaic_ddic_tools_util( )->get_built_in_types_response( ).
       ENDIF.
 
       RETURN.

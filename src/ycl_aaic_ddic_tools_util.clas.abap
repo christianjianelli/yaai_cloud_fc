@@ -17,6 +17,9 @@ CLASS ycl_aaic_ddic_tools_util DEFINITION
     METHODS get_built_in_types_supported
       RETURNING VALUE(r_response) TYPE string.
 
+    METHODS get_built_in_types_response
+      RETURNING VALUE(r_response) TYPE string.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -141,5 +144,9 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
     r_response = |{ cl_abap_char_utilities=>newline }{ r_response }The types: CHAR AND NUMC require a length.|.
     r_response = |{ cl_abap_char_utilities=>newline }{ r_response }The types: DEC, QUAN and CURR require a length and decimals, where decimals can be zero.|.
     r_response = |{ cl_abap_char_utilities=>newline }{ r_response }The type STRING can have a length but it must be greater than or equal to 256, or 0 for a string with unlimited length.|.
+  ENDMETHOD.
+
+  METHOD get_built_in_types_response.
+    r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
   ENDMETHOD.
 ENDCLASS.

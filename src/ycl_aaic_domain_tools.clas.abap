@@ -54,9 +54,6 @@ CLASS ycl_aaic_domain_tools DEFINITION
 
   PRIVATE SECTION.
 
-    METHODS get_response_supported_types
-      RETURNING VALUE(r_response) TYPE string.
-
 ENDCLASS.
 
 
@@ -106,7 +103,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     ENDIF.
 
     IF lo_format IS NOT BOUND.
-      r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { r_response } { me->get_response_supported_types( ) }|.
+      r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { r_response } { NEW ycl_aaic_ddic_tools_util( )->get_built_in_types_response( ) }|.
       RETURN.
     ENDIF.
 
@@ -248,7 +245,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
       ENDIF.
 
       IF lo_format IS NOT BOUND.
-        r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { r_response } { me->get_response_supported_types( ) }|.
+        r_response = |The data type { i_data_type } is incorrect or invalid. Only ABAP built-in types are allowed. { r_response } { NEW ycl_aaic_ddic_tools_util( )->get_built_in_types_response( ) }|.
         RETURN.
       ENDIF.
 
@@ -375,10 +372,6 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     ENDIF.
 
-  ENDMETHOD.
-
-  METHOD get_response_supported_types.
-    r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
   ENDMETHOD.
 
   METHOD if_oo_adt_classrun~main.
