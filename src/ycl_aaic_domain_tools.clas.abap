@@ -46,6 +46,13 @@ CLASS ycl_aaic_domain_tools DEFINITION
                 i_transport_request TYPE yde_aaic_fc_transport_request
       RETURNING VALUE(r_response)   TYPE string.
 
+    METHODS search
+      IMPORTING
+                i_domain_name     TYPE string OPTIONAL
+                i_description     TYPE yde_aaic_fc_description OPTIONAL
+                i_package         TYPE yde_aaic_fc_package
+      RETURNING VALUE(r_response) TYPE string.
+
     METHODS activate
       IMPORTING
                 i_domain_name     TYPE string
@@ -169,6 +176,9 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
   METHOD read.
 
+    DATA: l_length   TYPE i,
+          l_decimals TYPE i.
+
     CLEAR r_response.
 
     DATA(l_domain_name) = CONV sxco_ad_object_name( condense( to_upper( i_domain_name ) ) ).
@@ -176,9 +186,6 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     DATA(lo_domain) = xco_cp_abap_dictionary=>domain( l_domain_name ).
 
     IF lo_domain->exists( ).
-
-      DATA: l_length   TYPE i,
-            l_decimals TYPE i.
 
       DATA(lo_content) = lo_domain->content( ).
 
@@ -385,6 +392,82 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD search.
+
+    DATA lt_filters TYPE sxco_t_ar_filters.
+
+    DATA: l_length   TYPE i,
+          l_decimals TYPE i.
+
+    DATA(l_package) = CONV sxco_package( condense( to_upper( i_package ) ) ).
+
+    DATA(lo_package) = xco_cp_abap_repository=>package->for( l_package ).
+
+    DATA(lo_type_filter) = xco_cp_abap_repository=>object_type->get_filter( xco_cp_abap_sql=>constraint->equal( 'DOMA' ) ).
+
+    lt_filters = VALUE #(
+      ( lo_type_filter )
+    ).
+
+    IF i_domain_name IS NOT INITIAL.
+
+      DATA(l_domain_name) = |%{ condense( to_upper( i_domain_name ) ) }%|.
+
+      DATA(lo_name_filter) = xco_cp_abap_repository=>object_name->get_filter( xco_cp_abap_sql=>constraint->contains_pattern( l_domain_name ) ).
+
+      APPEND lo_name_filter TO lt_filters.
+
+    ENDIF.
+
+    DATA(lt_objects) = xco_cp_abap_repository=>objects->doma->where( lt_filters )->in( lo_package )->get( ).
+
+    TRY.
+
+        LOOP AT lt_objects INTO DATA(lo_object).
+
+          DATA(l_object_name) = lo_object->name.
+
+          DATA(lo_content) = lo_object->content( ).
+
+          DATA(l_short_description) = lo_content->get_short_description( ).
+
+          IF i_description IS NOT INITIAL.
+
+            DATA(l_pattern) = |*{ l_short_description }*|.
+
+            IF NOT l_short_description CP l_pattern.
+              CONTINUE.
+            ENDIF.
+
+          ENDIF.
+
+          DATA(lo_format) = lo_content->get_format( ).
+
+          DATA(lo_built_in_type) = lo_format->get_built_in_type( ).
+
+          l_length = lo_built_in_type->length.
+
+          l_decimals = lo_built_in_type->decimals.
+
+          r_response = |{ r_response }Domain: { l_object_name }{ cl_abap_char_utilities=>newline }|.
+          r_response = |{ r_response }Description: { l_object_name }{ cl_abap_char_utilities=>newline }|.
+          r_response = |{ r_response }Type: { lo_built_in_type->type }{ cl_abap_char_utilities=>newline }|.
+          r_response = |{ r_response }Length: { l_length }{ cl_abap_char_utilities=>newline }|.
+
+          IF lo_built_in_type->type = 'DEC' OR lo_built_in_type->type = 'QUAN' OR lo_built_in_type->type = 'CURR'.
+            r_response = |{ r_response }Decimals: { l_decimals }{ cl_abap_char_utilities=>newline }|.
+          ENDIF.
+
+          r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+
+        ENDLOOP.
+
+      CATCH cx_xco_runtime_exception ##NO_HANDLER.
+        " Ignore inactive objects
+    ENDTRY.
+
+  ENDMETHOD.
+
   METHOD activate.
 
     CLEAR r_response.
@@ -444,8 +527,8 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     DATA(l_create) = abap_false.
     DATA(l_read) = abap_false.
     DATA(l_update) = abap_false.
-    DATA(l_delete) = abap_true.
-    DATA(l_query) = abap_false.
+    DATA(l_delete) = abap_false.
+    DATA(l_search) = abap_true.
     DATA(l_activate) = abap_false.
 
     " Create Domain
@@ -519,10 +602,16 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     ENDIF.
 
-    " Query Domains
+    " Search Domains
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-    IF l_activate = abap_true.
+    IF l_search = abap_true.
 
+      l_response = me->search(
+        EXPORTING
+          i_domain_name = 'FROM'
+          i_description = 'Email'
+          i_package     = 'ZCHRJS'
+      ).
 
       out->write( l_response ).
 
@@ -530,7 +619,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     " Activate Domain
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-    IF l_query = abap_true.
+    IF l_activate = abap_true.
 
       l_response = me->activate( 'ZDO_CJS_INACTIVE' ).
 
