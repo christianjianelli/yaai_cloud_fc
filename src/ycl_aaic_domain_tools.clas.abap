@@ -198,7 +198,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
       l_length = lo_built_in_type->length.
       l_decimals = lo_built_in_type->decimals.
 
-      r_response = |Domain Name: { lo_domain->name }{ cl_abap_char_utilities=>newline }|.
+      r_response = |Domain: { lo_domain->name }{ cl_abap_char_utilities=>newline }|.
       r_response = |{ r_response }Description: { l_short_description }{ cl_abap_char_utilities=>newline }|.
       r_response = |{ r_response }Type: { lo_built_in_type->type }{ cl_abap_char_utilities=>newline }|.
       r_response = |{ r_response }Length: { l_length }{ cl_abap_char_utilities=>newline }|.
@@ -225,9 +225,9 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
   METHOD update.
 
-    CLEAR r_response.
-
     DATA lo_format TYPE REF TO cl_xco_ad_built_in_type.
+
+    CLEAR r_response.
 
     DATA(l_domain_name) = CONV sxco_ad_object_name( condense( to_upper( i_domain_name ) ) ).
 
@@ -399,15 +399,11 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     DATA: l_length   TYPE i,
           l_decimals TYPE i.
 
+    CLEAR r_response.
+
     DATA(l_package) = CONV sxco_package( condense( to_upper( i_package ) ) ).
 
     DATA(lo_package) = xco_cp_abap_repository=>package->for( l_package ).
-
-    DATA(lo_type_filter) = xco_cp_abap_repository=>object_type->get_filter( xco_cp_abap_sql=>constraint->equal( 'DOMA' ) ).
-
-    lt_filters = VALUE #(
-      ( lo_type_filter )
-    ).
 
     IF i_domain_name IS NOT INITIAL.
 
@@ -424,8 +420,6 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     TRY.
 
         LOOP AT lt_objects INTO DATA(lo_object).
-
-          DATA(l_object_name) = lo_object->name.
 
           DATA(lo_content) = lo_object->content( ).
 
@@ -449,8 +443,8 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
           l_decimals = lo_built_in_type->decimals.
 
-          r_response = |{ r_response }Domain: { l_object_name }{ cl_abap_char_utilities=>newline }|.
-          r_response = |{ r_response }Description: { l_object_name }{ cl_abap_char_utilities=>newline }|.
+          r_response = |{ r_response }Domain: { lo_object->name }{ cl_abap_char_utilities=>newline }|.
+          r_response = |{ r_response }Description: { l_short_description }{ cl_abap_char_utilities=>newline }|.
           r_response = |{ r_response }Type: { lo_built_in_type->type }{ cl_abap_char_utilities=>newline }|.
           r_response = |{ r_response }Length: { l_length }{ cl_abap_char_utilities=>newline }|.
 
