@@ -42,8 +42,9 @@ CLASS ycl_aaic_domain_tools DEFINITION
 
     METHODS delete
       IMPORTING
-                i_domain_name     TYPE string
-      RETURNING VALUE(r_response) TYPE string.
+                i_domain_name       TYPE string
+                i_transport_request TYPE yde_aaic_fc_transport_request
+      RETURNING VALUE(r_response)   TYPE string.
 
     METHODS activate
       IMPORTING
@@ -176,12 +177,28 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     IF lo_domain->exists( ).
 
+      DATA: l_length   TYPE i,
+            l_decimals TYPE i.
+
       DATA(lo_content) = lo_domain->content( ).
 
       DATA(l_short_description) = lo_content->get_short_description( ).
 
+      DATA(lo_format) = lo_content->get_format( ).
+
+      DATA(lo_built_in_type) = lo_format->get_built_in_type( ).
+
+      l_length = lo_built_in_type->length.
+      l_decimals = lo_built_in_type->decimals.
+
       r_response = |Domain Name: { lo_domain->name }{ cl_abap_char_utilities=>newline }|.
       r_response = |{ r_response }Description: { l_short_description }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }Type: { lo_built_in_type->type }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }Length: { l_length }{ cl_abap_char_utilities=>newline }|.
+
+      IF lo_built_in_type->type = 'DEC' OR lo_built_in_type->type = 'QUAN' OR lo_built_in_type->type = 'CURR'.
+        r_response = |{ r_response }Decimals: { l_decimals }{ cl_abap_char_utilities=>newline }|.
+      ENDIF.
 
     ELSE.
 
@@ -320,6 +337,52 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     DATA(l_domain_name) = CONV sxco_ad_object_name( condense( to_upper( i_domain_name ) ) ).
 
+    DATA(l_transport_request) = CONV sxco_transport( condense( to_upper( i_transport_request ) ) ).
+
+    DATA(lo_delete_operation) = xco_cp_generation=>environment->dev_system( l_transport_request )->for-doma->create_delete_operation( ).
+
+    lo_delete_operation->add_object( l_domain_name ).
+
+    TRY.
+
+        DATA(lo_result) = lo_delete_operation->execute( ).
+
+        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
+
+        IF l_contain_errors = abap_false.
+
+          r_response = |Domain `{ l_domain_name }` deleted successfully!|.
+
+        ELSE.
+
+          r_response = |Error: the domain `{ l_domain_name }` was not deleted!|.
+
+        ENDIF.
+
+      CATCH cx_xco_gen_delete_exception INTO DATA(lo_cx_xco_gen_delete_exception).
+
+        r_response = |Error! { lo_cx_xco_gen_delete_exception->get_longtext( ) }|.
+
+        DATA(lo_findings) = lo_cx_xco_gen_delete_exception->findings->for->doma.
+
+        DATA(lt_findings) = lo_findings->get( ).
+
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          LOOP AT <ls_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+
+            r_response = r_response && <lo_message>->get_text( ).
+
+          ENDLOOP.
+
+        ENDLOOP.
+
+    ENDTRY.
+
   ENDMETHOD.
 
   METHOD activate.
@@ -378,17 +441,20 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     DATA l_response TYPE string.
 
-    DATA(l_create) = abap_true.
+    DATA(l_create) = abap_false.
     DATA(l_read) = abap_false.
     DATA(l_update) = abap_false.
-    DATA(l_delete) = abap_false.
+    DATA(l_delete) = abap_true.
+    DATA(l_query) = abap_false.
     DATA(l_activate) = abap_false.
 
+    " Create Domain
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     IF l_create = abap_true.
 
       l_response = me->create(
         EXPORTING
-          i_domain_name        = 'ZDO_TEST'
+          i_domain_name        = 'ZDO_TEST_DELETE'
           i_description        = 'XCO Domain generation test'
           i_data_type          = 'CHAR'
           i_length             = '1'
@@ -405,14 +471,19 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     ENDIF.
 
+    " Read Domain
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     IF l_read = abap_true.
 
-      l_response = me->read( 'ZDO_CJS_INACTIVE' ).
+      l_response = me->read( 'ZDO_CJS_CURR' ).
 
       out->write( l_response ).
 
     ENDIF.
 
+
+    " Update Domain
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     IF l_update = abap_true.
 
       l_response = me->update(
@@ -434,7 +505,32 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     ENDIF.
 
+    " Delete Domain
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    IF l_delete = abap_true.
+
+      l_response = me->delete(
+        EXPORTING
+          i_domain_name       = 'ZDO_TEST_DELETE'
+          i_transport_request = ''
+      ).
+
+      out->write( l_response ).
+
+    ENDIF.
+
+    " Query Domains
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     IF l_activate = abap_true.
+
+
+      out->write( l_response ).
+
+    ENDIF.
+
+    " Activate Domain
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    IF l_query = abap_true.
 
       l_response = me->activate( 'ZDO_CJS_INACTIVE' ).
 
