@@ -233,7 +233,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     DATA(lo_domain) = xco_cp_abap_dictionary=>domain( l_domain_name ).
 
     IF lo_domain->exists( ) = abap_false.
-      r_response = |Domain `{ l_domain_name }` doesn't exist!|.
+      r_response = |Domain `{ l_domain_name }` doesn't exist.|.
       RETURN.
     ENDIF.
 

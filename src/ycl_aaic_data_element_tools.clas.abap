@@ -277,6 +277,13 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     DATA(l_data_element_name) = CONV sxco_ad_object_name( condense( to_upper( i_data_element_name ) ) ).
 
+    DATA(lo_data_element) = xco_cp_abap_dictionary=>data_element( l_data_element_name ).
+
+    IF lo_data_element->exists( ) = abap_false.
+      r_response = |Data Element `{ l_data_element_name }` doesn't exist.|.
+      RETURN.
+    ENDIF.
+
     IF i_domain_name IS NOT INITIAL.
       l_domain_name = condense( to_upper( i_domain_name ) ).
     ELSEIF i_data_type IS NOT INITIAL.
@@ -541,8 +548,8 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     DATA(l_create) = abap_false.
     DATA(l_read) = abap_false.
-    DATA(l_update) = abap_false.
-    DATA(l_delete) = abap_true.
+    DATA(l_update) = abap_true.
+    DATA(l_delete) = abap_false.
     DATA(l_search) = abap_false.
     DATA(l_activate) = abap_false.
 
