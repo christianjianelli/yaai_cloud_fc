@@ -540,6 +540,50 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
   METHOD activate.
 
+    CLEAR r_response.
+
+    DATA(l_data_element_name) = CONV sxco_ad_object_name( condense( to_upper( i_data_element_name ) ) ).
+
+    DATA(lo_patch_operation) = xco_cp_generation=>environment->dev_system( ''
+      )->for-dtel->create_patch_operation( ).
+
+    DATA(lo_change_specification) = lo_patch_operation->add_object( l_data_element_name
+      )->create_change_specification( ).
+
+    TRY.
+
+        DATA(lo_result) = lo_patch_operation->execute( ).
+
+        IF lo_result->findings->contain_errors( ) = abap_false.
+
+          r_response = |Data Element `{ l_data_element_name }` activated successfully!|.
+
+        ENDIF.
+
+      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+
+        r_response = lo_cx_xco_gen_patch_exception->get_longtext( ).
+
+        DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->doma.
+
+        DATA(lt_findings) = lo_findings->get( ).
+
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          LOOP AT <ls_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+
+            r_response = r_response && <lo_message>->get_text( ).
+
+          ENDLOOP.
+
+        ENDLOOP.
+
+    ENDTRY.
+
   ENDMETHOD.
 
   METHOD if_oo_adt_classrun~main.

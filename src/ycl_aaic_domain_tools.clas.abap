@@ -475,11 +475,13 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
         DATA(lo_result) = lo_patch_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
+        IF lo_result->findings->contain_errors( ) = abap_false.
+
+          r_response = |Domain `{ l_domain_name }` activated successfully!|.
+
+        ENDIF.
 
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
-
-        l_contain_errors = abap_true.
 
         r_response = lo_cx_xco_gen_patch_exception->get_longtext( ).
 
@@ -502,12 +504,6 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
         ENDLOOP.
 
     ENDTRY.
-
-    IF l_contain_errors = abap_false.
-
-      r_response = |Domain `{ l_domain_name }` activated successfully!|.
-
-    ENDIF.
 
   ENDMETHOD.
 
