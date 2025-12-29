@@ -36,7 +36,6 @@ CLASS ycl_aaic_domain_tools DEFINITION
                 i_case_sensitive     TYPE yde_aaic_fc_case_sensitive OPTIONAL
                 i_conversion_routine TYPE yde_aaic_fc_conversion_routine OPTIONAL
                 i_transport_request  TYPE yde_aaic_fc_transport_request
-                i_package            TYPE yde_aaic_fc_package
                 i_t_fixed_values     TYPE ytt_aaic_fc_domain_fixed_val OPTIONAL
       RETURNING VALUE(r_response)    TYPE string.
 
@@ -238,8 +237,6 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    DATA(l_package) = CONV sxco_package( condense( to_upper( i_package ) ) ).
-
     DATA(l_transport_request) = CONV sxco_transport( condense( to_upper( i_transport_request ) ) ).
 
     DATA(lo_patch_operation) = xco_cp_generation=>environment->dev_system( l_transport_request )->create_patch_operation( ).
@@ -362,7 +359,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
         ELSE.
 
-          r_response = |Error: the domain `{ l_domain_name }` was not deleted!|.
+          r_response = |Error: the Domain `{ l_domain_name }` was not deleted!|.
 
         ENDIF.
 
@@ -573,7 +570,6 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 *          i_case_sensitive     = abap_true
 *          i_conversion_routine = 'ZXPRO'
           i_transport_request  = ''
-          i_package            = 'ZCHRJS'
         i_t_fixed_values     = VALUE #( ( value = 'C' description = 'VALUE C' )
                                         ( value = 'D' description = 'VALUE D' ) )
       ).
