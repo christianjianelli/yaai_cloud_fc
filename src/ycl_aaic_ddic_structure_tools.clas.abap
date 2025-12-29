@@ -37,7 +37,7 @@ CLASS ycl_aaic_ddic_structure_tools DEFINITION
 
     METHODS search
       IMPORTING
-                i_structure_name  TYPE yde_aaic_fc_structure_name
+                i_structure_name  TYPE yde_aaic_fc_structure_name OPTIONAL
                 i_description     TYPE yde_aaic_fc_description OPTIONAL
                 i_package         TYPE yde_aaic_fc_package
       RETURNING VALUE(r_response) TYPE string.
@@ -437,13 +437,169 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
   METHOD delete.
 
+    CLEAR r_response.
+
+    DATA(l_structure_name) = CONV sxco_ad_object_name( condense( to_upper( i_structure_name ) ) ).
+
+    DATA(l_transport_request) = CONV sxco_transport( condense( to_upper( i_transport_request ) ) ).
+
+    DATA(lo_delete_operation) = xco_cp_generation=>environment->dev_system( l_transport_request
+      )->for-tabl-for-structure->create_delete_operation( ).
+
+    lo_delete_operation->add_object( l_structure_name ).
+
+    TRY.
+
+        DATA(lo_result) = lo_delete_operation->execute( ).
+
+        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
+
+        IF l_contain_errors = abap_false.
+
+          r_response = |Structure `{ l_structure_name }` deleted successfully!|.
+
+        ELSE.
+
+          r_response = |Error: the Structure `{ l_structure_name }` was not deleted!|.
+
+        ENDIF.
+
+      CATCH cx_xco_gen_delete_exception INTO DATA(lo_cx_xco_gen_delete_exception).
+
+        r_response = |Error! { lo_cx_xco_gen_delete_exception->get_longtext( ) }|.
+
+        DATA(lo_findings) = lo_cx_xco_gen_delete_exception->findings->for->doma.
+
+        DATA(lt_findings) = lo_findings->get( ).
+
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          LOOP AT <ls_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+
+            r_response = r_response && <lo_message>->get_text( ).
+
+          ENDLOOP.
+
+        ENDLOOP.
+
+    ENDTRY.
+
   ENDMETHOD.
 
   METHOD search.
 
+    DATA lt_filters TYPE sxco_t_ar_filters.
+
+    DATA: l_length   TYPE i,
+          l_decimals TYPE i.
+
+    CLEAR r_response.
+
+    DATA(l_package) = CONV sxco_package( condense( to_upper( i_package ) ) ).
+
+    DATA(lo_package) = xco_cp_abap_repository=>package->for( l_package ).
+
+    IF i_structure_name IS NOT INITIAL.
+
+      DATA(l_structure_name) = |%{ CONV sxco_ad_object_name( condense( to_upper( i_structure_name ) ) ) }%|.
+
+      DATA(lo_name_filter) = xco_cp_abap_repository=>object_name->get_filter( xco_cp_abap_sql=>constraint->contains_pattern( l_structure_name ) ).
+
+      APPEND lo_name_filter TO lt_filters.
+
+    ENDIF.
+
+    DATA(lt_objects) = xco_cp_abap_repository=>objects->tabl->where( lt_filters )->in( lo_package )->get( ).
+
+    TRY.
+
+        LOOP AT lt_objects INTO DATA(lo_object).
+
+          IF lo_object->is_structure( ) = abap_false.
+            CONTINUE.
+          ENDIF.
+
+          DATA(lo_structure) = lo_object->get_structure( ).
+
+          DATA(lo_content) = lo_structure->content( ).
+
+          DATA(l_short_description) = lo_content->get_short_description( ).
+
+          IF i_description IS NOT INITIAL.
+
+            DATA(l_pattern) = |*{ l_short_description }*|.
+
+            IF NOT l_short_description CP l_pattern.
+              CONTINUE.
+            ENDIF.
+
+          ENDIF.
+
+          r_response = |{ r_response }Structure: { lo_object->name }{ cl_abap_char_utilities=>newline }|.
+          r_response = |{ r_response }Description: { l_short_description }{ cl_abap_char_utilities=>newline }|.
+          r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+
+        ENDLOOP.
+
+      CATCH cx_xco_runtime_exception ##NO_HANDLER.
+        " Ignore inactive objects
+    ENDTRY.
+
   ENDMETHOD.
 
   METHOD activate.
+
+    CLEAR r_response.
+
+    DATA(l_structure_name) = CONV sxco_ad_object_name( condense( to_upper( i_structure_name ) ) ).
+
+    DATA(lo_patch_operation) = xco_cp_generation=>environment->dev_system( ''
+      )->create_patch_operation( ).
+
+    DATA(lo_change_specification) = lo_patch_operation->for-tabl-for-structure->add_object( l_structure_name
+      )->create_change_specification( ).
+
+    TRY.
+
+        DATA(lo_result) = lo_patch_operation->execute( ).
+
+        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
+
+      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+
+        l_contain_errors = abap_true.
+
+        r_response = lo_cx_xco_gen_patch_exception->get_longtext( ).
+
+        DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->doma.
+
+        DATA(lt_findings) = lo_findings->get( ).
+
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          LOOP AT <ls_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+
+            r_response = r_response && <lo_message>->get_text( ).
+
+          ENDLOOP.
+
+        ENDLOOP.
+
+    ENDTRY.
+
+    IF l_contain_errors = abap_false.
+
+      r_response = |Structure `{ l_structure_name }` activated successfully!|.
+
+    ENDIF.
 
   ENDMETHOD.
 
@@ -452,11 +608,11 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
     DATA l_response TYPE string.
 
     DATA(l_create) = abap_false.
-    DATA(l_read) = abap_true.
+    DATA(l_read) = abap_false.
     DATA(l_update) = abap_false.
     DATA(l_delete) = abap_false.
     DATA(l_search) = abap_false.
-    DATA(l_activate) = abap_false.
+    DATA(l_activate) = abap_true.
 
     " Create Structure
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -468,7 +624,7 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
           i_description       = 'XCO Test'
           i_transport_request = 'TRLK900008'
           i_package           = 'ZCHRJS'
-          i_t_components      = VALUE #( ( field_name = 'FIELD1' data_element = 'ZDS_CJS_EMAIL_FROM' )
+          i_t_components      = VALUE #( ( field_name = 'FIELD1' data_element = 'ZDE_CJS_EMAIL_FROM' )
                                          ( field_name = 'FIELD2' data_type = 'CHAR' length = '30' )
                                          ( field_name = 'FIELD3' data_type = 'QUAN' length = '10' decimals = 3 ref_field = 'FIELD4' )
                                          ( field_name = 'FIELD4' data_type = 'UNIT' )
@@ -498,13 +654,48 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
           i_structure_name    = 'ZST_CJS_STRUC_XCO_TEST'
           i_description       = 'XCO Test'
           i_transport_request = 'TRLK900008'
-          i_t_components      = VALUE #( ( field_name = 'FIELD1' data_element = 'ZDS_CJS_EMAIL_FROM' )
+          i_t_components      = VALUE #( ( field_name = 'FIELD1' data_element = 'ZDE_CJS_EMAIL_FROM' )
                                          ( field_name = 'FIELD2' data_type = 'CHAR' length = '50' )
                                          ( field_name = 'FIELD3' data_type = 'QUAN' length = '16' decimals = 3 ref_field = 'FIELD4' )
                                          ( field_name = 'FIELD4' data_type = 'UNIT' )
                                          ( field_name = 'FIELD5' data_type = 'CURR' length = '15' decimals = 2 ref_field = 'FIELD6' )
                                          ( field_name = 'FIELD6' data_type = 'CUKY' )
                                          ( field_name = 'FIELD7' data_type = 'CHAR' length = '10' ) )
+      ).
+
+    ENDIF.
+
+    " Delete Structure
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    IF l_delete = abap_true.
+
+      l_response = me->delete(
+        EXPORTING
+          i_structure_name    = 'ZST_CJS_STRUC_XCO_TEST2'
+          i_transport_request = 'TRLK900008'
+      ).
+
+    ENDIF.
+
+    " Search Structures
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    IF l_search = abap_true.
+
+      l_response = me->search(
+        EXPORTING
+          i_structure_name = 'TEST_SEARCH'
+          i_package = 'ZCHRJS'
+      ).
+
+    ENDIF.
+
+    " Activate Structure
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    IF l_activate = abap_true.
+
+      l_response = me->activate(
+        EXPORTING
+          i_structure_name = 'ZST_CJS_STRUC_XCO_TEST_INACT'
       ).
 
     ENDIF.
