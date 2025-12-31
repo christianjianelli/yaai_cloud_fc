@@ -141,53 +141,27 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_put_operation->execute( ).
+        lo_put_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Data Element `{ l_data_element_name }` created successfully!|.
-
-        ELSE.
-
-          DATA(lt_findings) = lo_result->findings->get( ).
-
-          LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
-
-            IF r_response IS NOT INITIAL.
-              r_response = r_response && cl_abap_char_utilities=>newline.
-            ENDIF.
-
-            LOOP AT <lo_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
-
-              r_response = r_response && <lo_message>->get_text( ).
-
-            ENDLOOP.
-
-          ENDLOOP.
-
-        ENDIF.
+        r_response = |Data Element `{ l_data_element_name }` created successfully!|.
 
       CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
 
-        l_contain_errors = abap_true.
-
-        r_response = |Error! { lo_cx_xco_gen_put_exception->get_longtext( ) }|.
+        r_response = |Error! Data Element `{ l_data_element_name }` was not created.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_put_exception->findings->for->dtel.
 
-        DATA(lt_findings_ex) = lo_findings->get( ).
+        DATA(lt_findings) = lo_findings->get( ).
 
-        LOOP AT lt_findings_ex ASSIGNING FIELD-SYMBOL(<lo_finding_ex>).
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
 
           IF r_response IS NOT INITIAL.
             r_response = r_response && cl_abap_char_utilities=>newline.
           ENDIF.
 
-          LOOP AT <lo_finding_ex>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message_ex>).
+          LOOP AT <lo_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
 
-            r_response = r_response && <lo_message_ex>->get_text( ).
+            r_response = r_response && <lo_message>->get_text( ).
 
           ENDLOOP.
 
@@ -345,53 +319,27 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_patch_operation->execute( ).
+        lo_patch_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Data Element `{ l_data_element_name }` updated successfully!|.
-
-        ELSE.
-
-          DATA(lt_findings) = lo_result->findings->get( ).
-
-          LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
-
-            IF r_response IS NOT INITIAL.
-              r_response = r_response && cl_abap_char_utilities=>newline.
-            ENDIF.
-
-            LOOP AT <lo_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
-
-              r_response = r_response && <lo_message>->get_text( ).
-
-            ENDLOOP.
-
-          ENDLOOP.
-
-        ENDIF.
+        r_response = |Data Element `{ l_data_element_name }` updated successfully!|.
 
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-        l_contain_errors = abap_true.
-
-        r_response = |Error! { lo_cx_xco_gen_patch_exception->get_longtext( ) }|.
+        r_response = |Error! Data Element `{ l_data_element_name }` was not updated.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->dtel.
 
-        DATA(lt_findings_ex) = lo_findings->get( ).
+        DATA(lt_findings) = lo_findings->get( ).
 
-        LOOP AT lt_findings_ex ASSIGNING FIELD-SYMBOL(<lo_finding_ex>).
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
 
           IF r_response IS NOT INITIAL.
             r_response = r_response && cl_abap_char_utilities=>newline.
           ENDIF.
 
-          LOOP AT <lo_finding_ex>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message_ex>).
+          LOOP AT <lo_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
 
-            r_response = r_response && <lo_message_ex>->get_text( ).
+            r_response = r_response && <lo_message>->get_text( ).
 
           ENDLOOP.
 
@@ -415,23 +363,13 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_delete_operation->execute( ).
+        lo_delete_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Data Element `{ l_data_element_name }` deleted successfully!|.
-
-        ELSE.
-
-          r_response = |Error: the Data Element `{ l_data_element_name }` was not deleted!|.
-
-        ENDIF.
+        r_response = |Data Element `{ l_data_element_name }` deleted successfully!|.
 
       CATCH cx_xco_gen_delete_exception INTO DATA(lo_cx_xco_gen_delete_exception).
 
-        r_response = |Error! { lo_cx_xco_gen_delete_exception->get_longtext( ) }|.
+        r_response = |Error! Data Element `{ l_data_element_name }` was not deleted!|.
 
         DATA(lo_findings) = lo_cx_xco_gen_delete_exception->findings->for->doma.
 
@@ -552,17 +490,13 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_patch_operation->execute( ).
+        lo_patch_operation->execute( ).
 
-        IF lo_result->findings->contain_errors( ) = abap_false.
-
-          r_response = |Data Element `{ l_data_element_name }` activated successfully!|.
-
-        ENDIF.
+        r_response = |Data Element `{ l_data_element_name }` activated successfully!|.
 
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-        r_response = lo_cx_xco_gen_patch_exception->get_longtext( ).
+        r_response = |Error! Data Element `{ l_data_element_name }` was not activated.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->doma.
 
@@ -592,8 +526,8 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     DATA(l_create) = abap_false.
     DATA(l_read) = abap_false.
-    DATA(l_update) = abap_true.
-    DATA(l_delete) = abap_false.
+    DATA(l_update) = abap_false.
+    DATA(l_delete) = abap_true.
     DATA(l_search) = abap_false.
     DATA(l_activate) = abap_false.
 
@@ -605,7 +539,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
         EXPORTING
           i_data_element_name  = 'ZDE_CJS_EMAIL_FROM_DEL'
           i_description        = 'XCO Domain generation test delete'
-          i_domain_name        = 'ZDO_CJS_EMAIL'
+          i_domain_name        = 'ZDO_CJS_XXX'
 *          i_data_type          = 'CHAR'
 *          i_length             = '100'
 *        i_decimals           = '3'
@@ -646,7 +580,7 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
       l_response = me->update(
         EXPORTING
           i_data_element_name  = 'ZDE_CJS_EMAIL_FROM'
-          i_description        = 'XCO Domain generation test...'
+          i_description        = 'XCO Domain generation test'
 *          i_domain_name        = 'ZDO_CJS_EMAIL'
           i_data_type          = 'CHAR'
           i_length             = '200'

@@ -162,45 +162,25 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_put_operation->execute( ).
+        lo_put_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Structure `{ l_structure_name }` created successfully!|.
-
-        ELSE.
-
-          r_response = |Structure `{ l_structure_name }` was not created!|.
-
-          DATA(lt_findings) = lo_result->findings->get( ).
-
-          LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
-
-            r_response = |{ r_response }{ cl_abap_char_utilities=>newline }{ <lo_finding>->message->get_text( ) }|.
-
-          ENDLOOP.
-
-        ENDIF.
+        r_response = |Structure `{ l_structure_name }` created successfully!|.
 
       CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
 
-        l_contain_errors = abap_true.
-
-        r_response = |Error! { lo_cx_xco_gen_put_exception->get_longtext( ) }|.
+        r_response = |Error! Structure `{ l_structure_name }` was not created.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_put_exception->findings->for->tabl.
 
-        DATA(lt_findings_ex) = lo_findings->get( ).
+        DATA(lt_findings) = lo_findings->get( ).
 
-        LOOP AT lt_findings_ex ASSIGNING FIELD-SYMBOL(<lo_finding_ex>).
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
 
           IF r_response IS NOT INITIAL.
             r_response = r_response && cl_abap_char_utilities=>newline.
           ENDIF.
 
-          LOOP AT <lo_finding_ex>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+          LOOP AT <lo_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
 
             r_response = r_response && <lo_message>->get_text( ).
 
@@ -385,43 +365,25 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_put_operation->execute( ).
+        lo_put_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Structure `{ l_structure_name }` updated successfully!|.
-
-        ELSE.
-
-          r_response = |Structure `{ l_structure_name }` was not updated!|.
-
-          DATA(lt_findings) = lo_result->findings->get( ).
-
-          LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
-
-            r_response = |{ r_response }{ cl_abap_char_utilities=>newline }{ <lo_finding>->message->get_text( ) }|.
-
-          ENDLOOP.
-
-        ENDIF.
+        r_response = |Structure `{ l_structure_name }` updated successfully!|.
 
       CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
 
-        r_response = |Error! { lo_cx_xco_gen_put_exception->get_longtext( ) }|.
+        r_response = |Error! Structure `{ l_structure_name }` was not updated.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_put_exception->findings->for->tabl.
 
-        DATA(lt_findings_ex) = lo_findings->get( ).
+        DATA(lt_findings) = lo_findings->get( ).
 
-        LOOP AT lt_findings_ex ASSIGNING FIELD-SYMBOL(<lo_finding_ex>).
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<lo_finding>).
 
           IF r_response IS NOT INITIAL.
             r_response = r_response && cl_abap_char_utilities=>newline.
           ENDIF.
 
-          LOOP AT <lo_finding_ex>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+          LOOP AT <lo_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
 
             r_response = r_response && <lo_message>->get_text( ).
 
@@ -448,25 +410,15 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_delete_operation->execute( ).
+        lo_delete_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Structure `{ l_structure_name }` deleted successfully!|.
-
-        ELSE.
-
-          r_response = |Error: the Structure `{ l_structure_name }` was not deleted!|.
-
-        ENDIF.
+        r_response = |Structure `{ l_structure_name }` deleted successfully!|.
 
       CATCH cx_xco_gen_delete_exception INTO DATA(lo_cx_xco_gen_delete_exception).
 
-        r_response = |Error! { lo_cx_xco_gen_delete_exception->get_longtext( ) }|.
+        r_response = |Error! Structure `{ l_structure_name }` was not deleted.|.
 
-        DATA(lo_findings) = lo_cx_xco_gen_delete_exception->findings->for->doma.
+        DATA(lo_findings) = lo_cx_xco_gen_delete_exception->findings->for->tabl.
 
         DATA(lt_findings) = lo_findings->get( ).
 
@@ -563,19 +515,15 @@ CLASS ycl_aaic_ddic_structure_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_patch_operation->execute( ).
+        lo_patch_operation->execute( ).
 
-        IF lo_result->findings->contain_errors( ) = abap_false.
-
-          r_response = |Structure `{ l_structure_name }` activated successfully!|.
-
-        ENDIF.
+        r_response = |Structure `{ l_structure_name }` activated successfully!|.
 
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-        r_response = lo_cx_xco_gen_patch_exception->get_longtext( ).
+        r_response = |Error! Structure `{ l_structure_name }` was not activated.|.
 
-        DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->doma.
+        DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->tabl.
 
         DATA(lt_findings) = lo_findings->get( ).
 

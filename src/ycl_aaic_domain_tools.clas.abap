@@ -131,25 +131,13 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_put_operation->execute( ).
+        lo_put_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Domain `{ l_domain_name }` created successfully!|.
-
-        ELSE.
-
-          r_response = |Error: the domain `{ l_domain_name }` was not created!|.
-
-        ENDIF.
+        r_response = |Domain `{ l_domain_name }` created successfully!|.
 
       CATCH cx_xco_gen_put_exception INTO DATA(lo_cx_xco_gen_put_exception).
 
-        l_contain_errors = abap_true.
-
-        r_response = |Error! { lo_cx_xco_gen_put_exception->get_longtext( ) }|.
+        r_response = |Error: the domain `{ l_domain_name }` was not created.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_put_exception->findings->for->doma.
 
@@ -293,25 +281,13 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_patch_operation->execute( ).
+        lo_patch_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Domain `{ l_domain_name }` updated successfully!|.
-
-        ELSE.
-
-          r_response = |Error: the domain `{ l_domain_name }` was not updated!|.
-
-        ENDIF.
+        r_response = |Domain `{ l_domain_name }` updated successfully!|.
 
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-        l_contain_errors = abap_true.
-
-        r_response = |Error! { lo_cx_xco_gen_patch_exception->get_longtext( ) }|.
+        r_response = |Error! Domain `{ l_domain_name }` was not updated.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->doma.
 
@@ -349,23 +325,13 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_delete_operation->execute( ).
+        lo_delete_operation->execute( ).
 
-        DATA(l_contain_errors) = lo_result->findings->contain_errors( ).
-
-        IF l_contain_errors = abap_false.
-
-          r_response = |Domain `{ l_domain_name }` deleted successfully!|.
-
-        ELSE.
-
-          r_response = |Error: the Domain `{ l_domain_name }` was not deleted!|.
-
-        ENDIF.
+        r_response = |Domain `{ l_domain_name }` deleted successfully!|.
 
       CATCH cx_xco_gen_delete_exception INTO DATA(lo_cx_xco_gen_delete_exception).
 
-        r_response = |Error! { lo_cx_xco_gen_delete_exception->get_longtext( ) }|.
+        r_response = |Error! Domain `{ l_domain_name }` was not deleted.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_delete_exception->findings->for->doma.
 
@@ -473,17 +439,13 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
     TRY.
 
-        DATA(lo_result) = lo_patch_operation->execute( ).
+        lo_patch_operation->execute( ).
 
-        IF lo_result->findings->contain_errors( ) = abap_false.
-
-          r_response = |Domain `{ l_domain_name }` activated successfully!|.
-
-        ENDIF.
+        r_response = |Domain `{ l_domain_name }` activated successfully!|.
 
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-        r_response = lo_cx_xco_gen_patch_exception->get_longtext( ).
+        r_response = |Error! Domain `{ l_domain_name }` was not activated.|.
 
         DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->doma.
 
@@ -515,7 +477,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
     DATA(l_read) = abap_false.
     DATA(l_update) = abap_false.
     DATA(l_delete) = abap_false.
-    DATA(l_search) = abap_true.
+    DATA(l_search) = abap_false.
     DATA(l_activate) = abap_false.
 
     " Create Domain
@@ -558,7 +520,7 @@ CLASS ycl_aaic_domain_tools IMPLEMENTATION.
 
       l_response = me->update(
         EXPORTING
-          i_domain_name        = 'ZDO_TEST'
+          i_domain_name        = 'ZDO_TEST_DELETE'
 *          i_description        = 'XCO Domain generation test'
 *          i_data_type          = 'CHAR'
 *          i_length             = '1'
