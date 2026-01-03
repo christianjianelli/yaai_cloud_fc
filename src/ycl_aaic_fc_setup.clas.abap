@@ -17,6 +17,11 @@ CLASS ycl_aaic_fc_setup IMPLEMENTATION.
 
   METHOD if_oo_adt_classrun~main.
 
+    "Transport request tools
+    INSERT yaaic_tool FROM TABLE @( VALUE #( ( class_name = 'ycl_aaic_transp_request_tools' method_name = 'create' description = 'Use this tool to create a transport request in the ABAP system.' )
+                                             ( class_name = 'ycl_aaic_transp_request_tools' method_name = 'search' description = 'Use this tool to search for transport requests in the ABAP system.' ) ) )
+      ACCEPTING DUPLICATE KEYS.
+
     "Domain tools
     INSERT yaaic_tool FROM TABLE @( VALUE #( ( class_name = 'ycl_aaic_domain_tools' method_name = 'create' description = 'Use this tool to create an ABAP domain in the ABAP Dictionary.' )
                                              ( class_name = 'ycl_aaic_domain_tools' method_name = 'read'   description = 'Use this tool to read an ABAP domain in the ABAP Dictionary.' )
