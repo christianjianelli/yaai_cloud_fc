@@ -25,7 +25,7 @@ CLASS ycl_aaic_data_element_tools DEFINITION
 
     METHODS read
       IMPORTING
-                i_data_element_name TYPE string
+                i_data_element_name TYPE yde_aaic_fc_data_element
       RETURNING VALUE(r_response)   TYPE string.
 
     METHODS update
@@ -45,20 +45,37 @@ CLASS ycl_aaic_data_element_tools DEFINITION
 
     METHODS delete
       IMPORTING
-                i_data_element_name TYPE string
+                i_data_element_name TYPE yde_aaic_fc_data_element
                 i_transport_request TYPE yde_aaic_fc_transport_request
       RETURNING VALUE(r_response)   TYPE string.
 
     METHODS search
       IMPORTING
-                i_data_element_name TYPE string OPTIONAL
+                i_data_element_name TYPE yde_aaic_fc_data_element OPTIONAL
                 i_description       TYPE yde_aaic_fc_description OPTIONAL
                 i_package           TYPE yde_aaic_fc_package
       RETURNING VALUE(r_response)   TYPE string.
 
     METHODS activate
       IMPORTING
+                i_data_element_name TYPE yde_aaic_fc_data_element
+      RETURNING VALUE(r_response)   TYPE string.
+
+    METHODS set_translation
+      IMPORTING
+                i_data_element_name TYPE yde_aaic_fc_data_element
+                i_transport_request TYPE yde_aaic_fc_transport_request
+                i_language          TYPE spras
+                i_label_short       TYPE yde_aaic_fc_short_label
+                i_label_medium      TYPE yde_aaic_fc_medium_label
+                i_label_long        TYPE yde_aaic_fc_long_label
+                i_label_heading     TYPE yde_aaic_fc_heading_label
+      RETURNING VALUE(r_response)   TYPE string.
+
+    METHODS get_translation
+      IMPORTING
                 i_data_element_name TYPE string
+                i_language          TYPE spras
       RETURNING VALUE(r_response)   TYPE string.
 
   PROTECTED SECTION.
@@ -520,6 +537,92 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD set_translation.
+
+    DATA(l_data_element_name) = CONV sxco_ad_object_name( condense( to_upper( i_data_element_name ) ) ).
+
+    DATA(l_transport_request) = CONV sxco_transport( condense( to_upper( i_transport_request ) ) ).
+
+    DATA(lo_transport_request) = xco_cp_cts=>transport->for( iv_transport = l_transport_request ).
+
+    DATA(l_language) = i_language.
+
+    l_language = to_upper( l_language ).
+
+    DATA(lo_language) = xco_cp=>language( l_language ).
+
+    DATA(lo_short_text_attribute) = xco_cp_data_element=>text_attribute->short_field_label.
+    DATA(lo_medium_text_attribute) = xco_cp_data_element=>text_attribute->medium_field_label.
+    DATA(lo_long_text_attribute) = xco_cp_data_element=>text_attribute->long_field_label.
+    DATA(lo_heading_text_attribute) = xco_cp_data_element=>text_attribute->heading_field_label.
+
+    DATA(lo_short_text) = lo_short_text_attribute->create_text( xco_cp=>string( i_label_short ) ).
+    DATA(lo_medium_text) = lo_medium_text_attribute->create_text( xco_cp=>string( i_label_medium ) ).
+    DATA(lo_long_text) = lo_long_text_attribute->create_text( xco_cp=>string( i_label_long ) ).
+    DATA(lo_heading_text) = lo_heading_text_attribute->create_text( xco_cp=>string( i_label_heading ) ).
+
+    DATA(lo_target) = xco_cp_i18n=>target->data_element->object( l_data_element_name ).
+
+    " Set the translation.
+    lo_target->set_translation(
+      it_texts           = VALUE #( ( lo_short_text )
+                                    ( lo_medium_text )
+                                    ( lo_long_text )
+                                    ( lo_heading_text ) )
+      io_language        = lo_language
+      io_change_scenario = lo_transport_request
+    ).
+
+    r_response = |Data Element `{ l_data_element_name }` translation set successfully!|.
+
+  ENDMETHOD.
+
+  METHOD get_translation.
+
+    DATA(l_data_element_name) = CONV sxco_ad_object_name( condense( to_upper( i_data_element_name ) ) ).
+
+    DATA(lo_target) = xco_cp_i18n=>target->data_element->object( l_data_element_name ).
+
+    DATA(l_language) = i_language.
+
+    l_language = to_upper( l_language ).
+
+    DATA(lo_language) = xco_cp=>language( l_language ).
+
+    DATA(lo_short_text_attribute) = xco_cp_data_element=>text_attribute->short_field_label.
+    DATA(lo_medium_text_attribute) = xco_cp_data_element=>text_attribute->medium_field_label.
+    DATA(lo_long_text_attribute) = xco_cp_data_element=>text_attribute->long_field_label.
+    DATA(lo_heading_text_attribute) = xco_cp_data_element=>text_attribute->heading_field_label.
+
+    TRY.
+
+        " Read the translation.
+        DATA(lo_translation) = lo_target->get_translation(
+          io_language        = lo_language
+          it_text_attributes = VALUE #( ( lo_short_text_attribute )
+                                        ( lo_medium_text_attribute )
+                                        ( lo_long_text_attribute )
+                                        ( lo_heading_text_attribute ) )
+        ).
+
+        LOOP AT lo_translation->texts INTO DATA(lo_text).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          r_response = |{ r_response }{ lo_text->attribute->value }: { lo_short_text_attribute->if_xco_i18n_text_attribute~get_string_for_text( lo_text->value ) }|.
+
+        ENDLOOP.
+
+      CATCH cx_xco_runtime_exception ##NO_HANDLER.
+
+        r_response = |No translation to language `{ l_language }` found for data element { l_data_element_name }.|.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
   METHOD if_oo_adt_classrun~main.
 
     DATA l_response TYPE string.
@@ -527,9 +630,11 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
     DATA(l_create) = abap_false.
     DATA(l_read) = abap_false.
     DATA(l_update) = abap_false.
-    DATA(l_delete) = abap_true.
+    DATA(l_delete) = abap_false.
     DATA(l_search) = abap_false.
     DATA(l_activate) = abap_false.
+    DATA(l_set_translation) = abap_false.
+    DATA(l_get_translation) = abap_true.
 
     " Create Data Element
     """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -603,6 +708,33 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
           i_data_element_name  = 'ZDE_CJS_EMAIL_FROM_DEL'
           i_transport_request  = 'TRLK900008'
       ).
+
+    ENDIF.
+
+    " Translate Data Element texts
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    IF l_set_translation = abap_true.
+
+      l_response = me->set_translation(
+                     i_data_element_name  = 'ZDE_CJS_EMAIL_FROM'
+                     i_transport_request  = 'TRLK900008'
+                     i_language           = 'S'
+                     i_label_short        = 'Correo de'
+                     i_label_medium       = 'Correo elect. de'
+                     i_label_long         = 'Correo electrónico de'
+                     i_label_heading      = 'Correo electrónico de.'
+                   ).
+
+    ENDIF.
+
+    " Get Data Element translation texts
+    """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    IF l_get_translation = abap_true.
+
+      l_response = me->get_translation(
+                     i_data_element_name  = 'ZDE_CJS_EMAIL_FROM'
+                     i_language           = 'S'
+                   ).
 
     ENDIF.
 
