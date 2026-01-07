@@ -563,17 +563,28 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     DATA(lo_target) = xco_cp_i18n=>target->data_element->object( l_data_element_name ).
 
-    " Set the translation.
-    lo_target->set_translation(
-      it_texts           = VALUE #( ( lo_short_text )
-                                    ( lo_medium_text )
-                                    ( lo_long_text )
-                                    ( lo_heading_text ) )
-      io_language        = lo_language
-      io_change_scenario = lo_transport_request
-    ).
+    TRY.
 
-    r_response = |Data Element `{ l_data_element_name }` translation set successfully!|.
+        " Set the translation.
+        lo_target->set_translation(
+          it_texts           = VALUE #( ( lo_short_text )
+                                        ( lo_medium_text )
+                                        ( lo_long_text )
+                                        ( lo_heading_text ) )
+          io_language        = lo_language
+          io_change_scenario = lo_transport_request
+        ).
+
+        r_response = |Data Element `{ l_data_element_name }` translation set successfully!|.
+
+
+      CATCH cx_xco_runtime_exception INTO DATA(lo_cx_xco_runtime_exception).
+
+        r_response = |Error! Data Element `{ l_data_element_name }` was not translated.{ cl_abap_char_utilities=>newline }|.
+        r_response = |{ r_response }{ lo_cx_xco_runtime_exception->get_text( ) }|.
+
+    ENDTRY.
+
 
   ENDMETHOD.
 
