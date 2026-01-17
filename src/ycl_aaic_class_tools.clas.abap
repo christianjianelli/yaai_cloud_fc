@@ -24,6 +24,14 @@ CLASS ycl_aaic_class_tools DEFINITION
                 i_package           TYPE yde_aaic_fc_package
       RETURNING VALUE(r_response)   TYPE string.
 
+    METHODS change_method
+      IMPORTING
+                i_class_name        TYPE yde_aaic_class_name
+                i_method_name       TYPE yde_aaic_method_name
+                i_description       TYPE yde_aaic_fc_description
+                i_transport_request TYPE yde_aaic_fc_transport_request
+                i_package           TYPE yde_aaic_fc_package
+      RETURNING VALUE(r_response)   TYPE string.
 
   PROTECTED SECTION.
   PRIVATE SECTION.
@@ -99,6 +107,62 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       )->set_short_description( i_description ).
 
     lo_method_definition->add_importing_parameter( 'I_P1' )->set_pass_by_reference( )->set_type( xco_cp_abap=>type-built_in->string ).
+    lo_method_definition->add_importing_parameter( 'I_P2' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>data_element( 'ZDE_CJS_EMAIL_FROM' ) ).
+    lo_method_definition->add_importing_parameter( 'I_S_1' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>structure( 'ZST_CJS_STRUC_XCO_TEST' ) ).
+    lo_method_definition->add_importing_parameter( 'I_T_1' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>table_type( 'ZTT_TEST_CJS_XCO_LIBRARY_12' ) ).
+
+    DATA(lo_method_implementation) = lo_patch_operation_object->for-insert->implementation->add_method( l_method_name
+      )->set_source( VALUE #( ( |"BINGO!| ) ) ).
+
+    TRY.
+
+        lo_patch_operation->execute( ).
+
+        r_response = |Method `{ l_method_name }` added to class `{ l_class_name }`.|.
+
+      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+
+        r_response = |Error! Method `{ l_method_name }` was not added to class `{ l_class_name }`.|.
+
+        DATA(lo_findings) = lo_cx_xco_gen_patch_exception->findings->for->clas.
+
+        DATA(lt_findings) = lo_findings->get( ).
+
+        LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+          IF r_response IS NOT INITIAL.
+            r_response = r_response && cl_abap_char_utilities=>newline.
+          ENDIF.
+
+          LOOP AT <ls_finding>->message->if_xco_news~get_messages( ) ASSIGNING FIELD-SYMBOL(<lo_message>).
+
+            r_response = r_response && <lo_message>->get_text( ).
+
+          ENDLOOP.
+
+        ENDLOOP.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD change_method.
+
+    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
+
+    DATA(l_method_name) = CONV sxco_clas_method_name( condense( to_upper( i_method_name ) ) ).
+
+    DATA(l_transport_request) = CONV sxco_transport( condense( to_upper( i_transport_request ) ) ).
+
+    DATA(lo_patch_operation) = xco_cp_generation=>environment->dev_system( l_transport_request )->for-clas->create_patch_operation( ).
+
+    DATA(lo_patch_operation_object) = lo_patch_operation->add_object( l_class_name ).
+
+    DATA(lo_method_definition) = lo_patch_operation_object->for-update->definition->section-public->add_method( l_method_name ).
+
+    lo_method_definition->for-insert->add_importing_parameter( 'I_P2' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>data_element( 'ZDE_CJS_EMAIL_FROM' ) ).
+    lo_method_definition->for-insert->add_importing_parameter( 'I_S_1' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>structure( 'ZST_CJS_STRUC_XCO_TEST' ) ).
+    lo_method_definition->for-insert->add_importing_parameter( 'I_T_1' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>table_type( 'ZTT_TEST_CJS_XCO_LIBRARY_12' ) ).
 
     DATA(lo_method_implementation) = lo_patch_operation_object->for-insert->implementation->add_method( l_method_name
       )->set_source( VALUE #( ( |"BINGO!| ) ) ).
@@ -156,7 +220,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     IF l_add_method = abap_true.
 
-      l_response = me->add_method(
+      l_response = me->change_method(
         EXPORTING
           i_class_name        = 'ZCL_CJS_00001'
           i_method_name       = 'M2'

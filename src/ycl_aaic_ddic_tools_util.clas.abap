@@ -20,6 +20,11 @@ CLASS ycl_aaic_ddic_tools_util DEFINITION
     METHODS get_built_in_types_response
       RETURNING VALUE(r_response) TYPE string.
 
+    METHODS get_type
+      IMPORTING
+                i_name        TYPE csequence
+      RETURNING VALUE(r_type) TYPE string.
+
   PROTECTED SECTION.
   PRIVATE SECTION.
 ENDCLASS.
@@ -148,5 +153,22 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
 
   METHOD get_built_in_types_response.
     r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
+  ENDMETHOD.
+
+  METHOD get_type.
+
+    CLEAR r_type.
+
+    DATA(lo_name_filter) = xco_cp_abap_repository=>object_name->get_filter( xco_cp_abap_sql=>constraint->equal( i_name ) ).
+
+    DATA(lt_objects) = xco_cp_abap_repository=>objects->where( VALUE #(
+      ( lo_name_filter )
+    ) )->in( xco_cp_abap=>repository )->get( ).
+
+    LOOP AT lt_objects INTO DATA(lo_object).
+      r_type = lo_object->type->value.
+      EXIT.
+    ENDLOOP.
+
   ENDMETHOD.
 ENDCLASS.
