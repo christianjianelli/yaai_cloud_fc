@@ -17,24 +17,61 @@ CLASS ycl_aaic_class_tools DEFINITION
 
     METHODS add_method
       IMPORTING
-                i_class_name        TYPE yde_aaic_class_name
-                i_method_name       TYPE yde_aaic_method_name
-                i_description       TYPE yde_aaic_fc_description
-                i_transport_request TYPE yde_aaic_fc_transport_request
-                i_package           TYPE yde_aaic_fc_package
-      RETURNING VALUE(r_response)   TYPE string.
+                i_class_name         TYPE yde_aaic_class_name
+                i_method_name        TYPE yde_aaic_method_name
+                i_description        TYPE yde_aaic_fc_description
+                i_transport_request  TYPE yde_aaic_fc_transport_request
+                i_package            TYPE yde_aaic_fc_package
+                i_source             TYPE string
+                i_s_returning_params TYPE yst_aaic_fc_method_return_par OPTIONAL
+                i_t_importing_params TYPE ytt_aaic_fc_method_imp_par OPTIONAL
+                i_t_exporting_params TYPE ytt_aaic_fc_method_exp_par OPTIONAL
+                i_t_changing_params  TYPE ytt_aaic_fc_method_chang_par OPTIONAL
+      RETURNING VALUE(r_response)    TYPE string.
 
     METHODS change_method
       IMPORTING
-                i_class_name        TYPE yde_aaic_class_name
-                i_method_name       TYPE yde_aaic_method_name
-                i_description       TYPE yde_aaic_fc_description
-                i_transport_request TYPE yde_aaic_fc_transport_request
-                i_package           TYPE yde_aaic_fc_package
-      RETURNING VALUE(r_response)   TYPE string.
+                i_class_name         TYPE yde_aaic_class_name
+                i_method_name        TYPE yde_aaic_method_name
+                i_description        TYPE yde_aaic_fc_description
+                i_transport_request  TYPE yde_aaic_fc_transport_request
+                i_package            TYPE yde_aaic_fc_package
+                i_s_returning_params TYPE yst_aaic_fc_method_return_par OPTIONAL
+                i_t_importing_params TYPE ytt_aaic_fc_method_imp_par OPTIONAL
+                i_t_exporting_params TYPE ytt_aaic_fc_method_exp_par OPTIONAL
+                i_t_changing_params  TYPE ytt_aaic_fc_method_chang_par OPTIONAL
+      RETURNING VALUE(r_response)    TYPE string.
 
   PROTECTED SECTION.
+
   PRIVATE SECTION.
+
+    DATA _response TYPE string.
+
+    METHODS _add_importing_parameter
+      IMPORTING
+                i_o_method_definition   TYPE REF TO if_xco_gen_ao_s_fo_c_method
+                i_s_importing_parameter TYPE yst_aaic_fc_method_parameter
+      RETURNING VALUE(r_error)          TYPE abap_bool.
+
+    METHODS _add_exporting_parameter
+      IMPORTING
+                i_o_method_definition   TYPE REF TO if_xco_gen_ao_s_fo_c_method
+                i_s_exporting_parameter TYPE yst_aaic_fc_method_exp_par
+      RETURNING VALUE(r_error)          TYPE abap_bool.
+
+    METHODS _add_changing_parameter
+      IMPORTING
+                i_o_method_definition  TYPE REF TO if_xco_gen_ao_s_fo_c_method
+                i_s_changing_parameter TYPE yst_aaic_fc_method_parameter
+      RETURNING VALUE(r_error)         TYPE abap_bool.
+
+    METHODS _add_returning_parameter
+      IMPORTING
+                i_o_method_definition   TYPE REF TO if_xco_gen_ao_s_fo_c_method
+                i_s_returning_parameter TYPE yst_aaic_fc_method_return_par
+      RETURNING VALUE(r_error)          TYPE abap_bool.
+
 ENDCLASS.
 
 
@@ -93,6 +130,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   METHOD add_method.
 
+    DATA lt_source TYPE STANDARD TABLE OF string.
+
     DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
 
     DATA(l_method_name) = CONV sxco_clas_method_name( condense( to_upper( i_method_name ) ) ).
@@ -106,13 +145,28 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(lo_method_definition) = lo_patch_operation_object->for-insert->definition->section-public->add_method( l_method_name
       )->set_short_description( i_description ).
 
-    lo_method_definition->add_importing_parameter( 'I_P1' )->set_pass_by_reference( )->set_type( xco_cp_abap=>type-built_in->string ).
-    lo_method_definition->add_importing_parameter( 'I_P2' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>data_element( 'ZDE_CJS_EMAIL_FROM' ) ).
-    lo_method_definition->add_importing_parameter( 'I_S_1' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>structure( 'ZST_CJS_STRUC_XCO_TEST' ) ).
-    lo_method_definition->add_importing_parameter( 'I_T_1' )->set_pass_by_reference( )->set_type( xco_cp_abap_dictionary=>table_type( 'ZTT_TEST_CJS_XCO_LIBRARY_12' ) ).
+    LOOP AT i_t_importing_params ASSIGNING FIELD-SYMBOL(<ls_importing_params>).
+
+      me->_add_importing_parameter(
+        i_o_method_definition   = lo_method_definition
+        i_s_importing_parameter = <ls_importing_params>
+      ).
+
+    ENDLOOP.
+
+    LOOP AT i_t_exporting_params ASSIGNING FIELD-SYMBOL(<ls_exporting_params>).
+
+      me->_add_exporting_parameter(
+        i_o_method_definition   = lo_method_definition
+        i_s_exporting_parameter = <ls_exporting_params>
+      ).
+
+    ENDLOOP.
+
+    SPLIT i_source AT cl_abap_char_utilities=>newline INTO TABLE lt_source.
 
     DATA(lo_method_implementation) = lo_patch_operation_object->for-insert->implementation->add_method( l_method_name
-      )->set_source( VALUE #( ( |"BINGO!| ) ) ).
+      )->set_source( lt_source ).
 
     TRY.
 
@@ -199,6 +253,256 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD _add_importing_parameter.
+
+    DATA(ls_importing_parameter) = i_s_importing_parameter.
+
+    DATA(lo_ddic_tools_utils) = NEW ycl_aaic_ddic_tools_util( ).
+
+    IF ls_importing_parameter-built_in_type IS NOT INITIAL.
+
+      NEW ycl_aaic_ddic_tools_util( )->determine_format(
+        EXPORTING
+          i_data_type = ls_importing_parameter-built_in_type
+          i_length    = ls_importing_parameter-length
+          i_decimals  = ls_importing_parameter-decimals
+        IMPORTING
+          e_o_format  = DATA(lo_format)
+          e_error     = DATA(l_error)
+      ).
+
+      IF l_error IS NOT INITIAL.
+        RETURN.
+      ENDIF.
+
+      IF lo_format IS NOT BOUND.
+        me->_response = |The data type { ls_importing_parameter-built_in_type } is incorrect or invalid. Only ABAP built-in types are allowed. { NEW ycl_aaic_ddic_tools_util( )->get_built_in_types_response( ) }|.
+        RETURN.
+      ENDIF.
+
+      i_o_method_definition->add_importing_parameter( CONV #( ls_importing_parameter-name )
+        )->set_pass_by_reference(
+        )->set_type( xco_cp_abap=>type-built_in->string
+        )->set_optional( ls_importing_parameter-optional
+        )->set_default_value( ls_importing_parameter-default_value ).
+
+    ELSEIF ls_importing_parameter-type IS NOT INITIAL.
+
+      DATA(l_object_type) = lo_ddic_tools_utils->get_object_type( ls_importing_parameter-type ).
+
+      CASE l_object_type.
+
+        WHEN 'DTEL'.
+
+          i_o_method_definition->add_importing_parameter( CONV #( ls_importing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>data_element( CONV #( ls_importing_parameter-type ) )
+            )->set_optional( ls_importing_parameter-optional
+            )->set_default_value( ls_importing_parameter-default_value ).
+
+        WHEN 'TABL'.
+
+          i_o_method_definition->add_importing_parameter( CONV #( ls_importing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>structure( CONV #( ls_importing_parameter-type ) )
+            )->set_optional( ls_importing_parameter-optional ).
+
+        WHEN 'TTYP'.
+
+          i_o_method_definition->add_importing_parameter( CONV #( ls_importing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>table_type( CONV #( ls_importing_parameter-type ) )
+            )->set_optional( ls_importing_parameter-optional ).
+
+        WHEN 'CLAS'.
+
+          i_o_method_definition->add_importing_parameter( CONV #( ls_importing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>class( CONV #( ls_importing_parameter-type ) )
+            )->set_optional( ls_importing_parameter-optional ).
+
+        WHEN 'INTF'.
+
+          i_o_method_definition->add_importing_parameter( CONV #( ls_importing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>interface( CONV #( ls_importing_parameter-type ) )
+            )->set_optional( ls_importing_parameter-optional ).
+
+      ENDCASE.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD _add_exporting_parameter.
+
+    DATA(ls_exporting_parameter) = i_s_exporting_parameter.
+
+    DATA(lo_ddic_tools_utils) = NEW ycl_aaic_ddic_tools_util( ).
+
+    IF ls_exporting_parameter-built_in_type IS NOT INITIAL.
+
+      i_o_method_definition->add_exporting_parameter( CONV #( ls_exporting_parameter-name )
+        )->set_pass_by_reference(
+        )->set_type( xco_cp_abap=>type-built_in->string ).
+
+    ELSEIF ls_exporting_parameter-type IS NOT INITIAL.
+
+      DATA(l_object_type) = lo_ddic_tools_utils->get_object_type( ls_exporting_parameter-type ).
+
+      CASE l_object_type.
+
+        WHEN 'DTEL'.
+
+          i_o_method_definition->add_exporting_parameter( CONV #( ls_exporting_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>data_element( CONV #( ls_exporting_parameter-type ) ) ).
+
+        WHEN 'TABL'.
+
+          i_o_method_definition->add_exporting_parameter( CONV #( ls_exporting_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>structure( CONV #( ls_exporting_parameter-type ) ) ).
+
+        WHEN 'TTYP'.
+
+          i_o_method_definition->add_exporting_parameter( CONV #( ls_exporting_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>table_type( CONV #( ls_exporting_parameter-type ) ) ).
+
+        WHEN 'CLAS'.
+
+          i_o_method_definition->add_exporting_parameter( CONV #( ls_exporting_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>class( CONV #( ls_exporting_parameter-type ) ) ).
+
+        WHEN 'INTF'.
+
+          i_o_method_definition->add_exporting_parameter( CONV #( ls_exporting_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>interface( CONV #( ls_exporting_parameter-type ) ) ).
+
+      ENDCASE.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD _add_changing_parameter.
+
+    DATA(ls_changing_parameter) = i_s_changing_parameter.
+
+    DATA(lo_ddic_tools_utils) = NEW ycl_aaic_ddic_tools_util( ).
+
+    IF ls_changing_parameter-built_in_type IS NOT INITIAL.
+
+      i_o_method_definition->add_changing_parameter( CONV #( ls_changing_parameter-name )
+        )->set_pass_by_reference(
+        )->set_type( xco_cp_abap=>type-built_in->string
+        )->set_optional( ls_changing_parameter-optional
+        )->set_default_value( ls_changing_parameter-default_value ).
+
+    ELSEIF ls_changing_parameter-type IS NOT INITIAL.
+
+      DATA(l_object_type) = lo_ddic_tools_utils->get_object_type( ls_changing_parameter-type ).
+
+      CASE l_object_type.
+
+        WHEN 'DTEL'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_changing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>data_element( CONV #( ls_changing_parameter-type ) )
+            )->set_optional( ls_changing_parameter-optional
+            )->set_default_value( ls_changing_parameter-default_value ).
+
+        WHEN 'TABL'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_changing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>structure( CONV #( ls_changing_parameter-type ) )
+            )->set_optional( ls_changing_parameter-optional ).
+
+        WHEN 'TTYP'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_changing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>table_type( CONV #( ls_changing_parameter-type ) )
+            )->set_optional( ls_changing_parameter-optional ).
+
+        WHEN 'CLAS'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_changing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>class( CONV #( ls_changing_parameter-type ) )
+            )->set_optional( ls_changing_parameter-optional ).
+
+        WHEN 'INTF'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_changing_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>interface( CONV #( ls_changing_parameter-type ) )
+            )->set_optional( ls_changing_parameter-optional ).
+
+      ENDCASE.
+
+    ENDIF.
+
+  ENDMETHOD.
+
+  METHOD _add_returning_parameter.
+
+    DATA(ls_returning_parameter) = i_s_returning_parameter.
+
+    DATA(lo_ddic_tools_utils) = NEW ycl_aaic_ddic_tools_util( ).
+
+    IF ls_returning_parameter-built_in_type IS NOT INITIAL.
+
+      i_o_method_definition->add_changing_parameter( CONV #( ls_returning_parameter-name )
+        )->set_pass_by_reference(
+        )->set_type( xco_cp_abap=>type-built_in->string ).
+
+    ELSEIF ls_returning_parameter-type IS NOT INITIAL.
+
+      DATA(l_object_type) = lo_ddic_tools_utils->get_object_type( ls_returning_parameter-type ).
+
+      CASE l_object_type.
+
+        WHEN 'DTEL'.
+
+          i_o_method_definition->add_returning_parameter( CONV #( ls_returning_parameter-name )
+            )->set_type( xco_cp_abap_dictionary=>data_element( CONV #( ls_returning_parameter-type ) ) ).
+
+        WHEN 'TABL'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_returning_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>structure( CONV #( ls_returning_parameter-type ) ) ).
+
+        WHEN 'TTYP'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_returning_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap_dictionary=>table_type( CONV #( ls_returning_parameter-type ) ) ).
+
+        WHEN 'CLAS'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_returning_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>class( CONV #( ls_returning_parameter-type ) ) ).
+
+        WHEN 'INTF'.
+
+          i_o_method_definition->add_changing_parameter( CONV #( ls_returning_parameter-name )
+            )->set_pass_by_reference(
+            )->set_type( xco_cp_abap=>interface( CONV #( ls_returning_parameter-type ) ) ).
+
+      ENDCASE.
+
+    ENDIF.
+
+  ENDMETHOD.
+
   METHOD if_oo_adt_classrun~main.
 
     DATA l_response TYPE string.
@@ -220,13 +524,15 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     IF l_add_method = abap_true.
 
-      l_response = me->change_method(
+      l_response = me->add_method(
         EXPORTING
           i_class_name        = 'ZCL_CJS_00001'
-          i_method_name       = 'M2'
-          i_description       = 'Method 2'
+          i_method_name       = 'M4'
+          i_description       = 'Method 4'
           i_transport_request = 'TRLK900008'
           i_package           = 'ZCHRJS'
+          i_source            = |IF 1 = 2. { cl_abap_char_utilities=>newline } ENDIF.|
+          i_t_importing_params = VALUE #( ( name = 'P1' type = 'YDE_AAIC_API' ) )
         ).
 
     ENDIF.
