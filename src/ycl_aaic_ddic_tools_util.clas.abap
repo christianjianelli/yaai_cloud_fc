@@ -20,15 +20,6 @@ CLASS ycl_aaic_ddic_tools_util DEFINITION
     METHODS get_built_in_types_response
       RETURNING VALUE(r_response) TYPE string.
 
-    METHODS get_type
-      IMPORTING
-        i_type     TYPE csequence
-        i_length   TYPE i OPTIONAL
-        i_decimals TYPE i OPTIONAL
-      EXPORTING
-        e_o_type   TYPE REF TO if_xco_gen_ao_type_parameter
-        e_error    TYPE string.
-
     METHODS get_object_type
       IMPORTING
                 i_name               TYPE csequence
@@ -162,117 +153,6 @@ CLASS ycl_aaic_ddic_tools_util IMPLEMENTATION.
 
   METHOD get_built_in_types_response.
     r_response = 'The ABAP built-in types supported are: CHAR, INT1, INT2, INT4, DEC, NUMC, STRING, DATS, TIMS, QUAN, UNIT, CURR, CUKY, FLTP, LANG, CLNT'.
-  ENDMETHOD.
-
-  METHOD get_type.
-
-    CLEAR e_o_type.
-
-    DATA(l_type) = condense( to_upper( i_type ) ).
-
-    CASE l_type.
-
-      WHEN 'CHAR'.
-
-        IF i_length IS INITIAL.
-          e_error = |The ABAP built-in type { l_type } requires a length.|.
-          RETURN.
-        ENDIF.
-
-*        e_o_type = xco_cp_abap=>type-built_in->.
-
-      WHEN 'INT1'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->int1.
-
-      WHEN 'INT2'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->int2.
-
-      WHEN 'INT4'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->int4.
-
-      WHEN 'DEC'.
-
-        IF i_length IS INITIAL.
-*          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
-          RETURN.
-        ENDIF.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->dec( iv_length = CONV #( i_length ) iv_decimals = CONV #( i_decimals ) ).
-
-      WHEN 'NUMC'.
-
-        IF i_length IS INITIAL.
-*          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
-          RETURN.
-        ENDIF.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->numc( CONV #( i_length ) ).
-
-      WHEN 'QUAN'.
-
-        IF i_length IS INITIAL.
-*          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
-          RETURN.
-        ENDIF.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->quan( iv_length = CONV #( i_length ) iv_decimals = CONV #( i_decimals ) ).
-
-      WHEN 'STRING'.
-
-        IF i_length = 0.
-*          e_o_format = xco_cp_abap_dictionary=>built_in_type->string( 0 ).
-        ELSEIF i_length > 0 AND i_length < 256.
-*          e_o_format = xco_cp_abap_dictionary=>built_in_type->string( CONV #( 256 ) ).
-        ELSE.
-*          e_o_format = xco_cp_abap_dictionary=>built_in_type->string( CONV #( i_length ) ).
-        ENDIF.
-
-      WHEN 'UNIT'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->unit( CONV #( 2 ) ).
-
-      WHEN 'CURR'.
-
-        IF i_length IS INITIAL.
-*          e_error = |The ABAP built-in type { l_data_type } requires a length.|.
-          RETURN.
-        ENDIF.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->curr( iv_length = CONV #( i_length ) iv_decimals = CONV #( i_decimals ) ).
-
-      WHEN 'CUKY'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->cuky.
-
-      WHEN 'DATS'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->dats.
-
-      WHEN 'TIMS'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->tims.
-
-      WHEN 'FLTP'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->fltp.
-
-      WHEN 'LANG'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->lang.
-
-      WHEN 'CLNT'.
-
-*        e_o_format = xco_cp_abap_dictionary=>built_in_type->clnt.
-
-      WHEN OTHERS.
-
-        RETURN.
-
-    ENDCASE.
-
   ENDMETHOD.
 
   METHOD get_object_type.
