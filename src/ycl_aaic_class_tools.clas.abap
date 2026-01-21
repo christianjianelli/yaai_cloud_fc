@@ -35,7 +35,7 @@ CLASS ycl_aaic_class_tools DEFINITION
                 i_t_changing_params  TYPE ytt_aaic_fc_method_chang_par OPTIONAL
       RETURNING VALUE(r_response)    TYPE string.
 
-    METHODS change_method_source_code
+    METHODS change_method_implementation
       IMPORTING
                 i_class_name        TYPE yde_aaic_class_name
                 i_method_name       TYPE yde_aaic_method_name
@@ -295,7 +295,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD change_method_source_code.
+  METHOD change_method_implementation.
 
     DATA lt_source TYPE STANDARD TABLE OF string.
 
@@ -929,7 +929,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(l_delete) = abap_false.
     DATA(l_add_attribute) = abap_false.
     DATA(l_delete_attribute) = abap_false.
-    DATA(l_change_method_source_code) = abap_true.
+    DATA(l_change_method_implementation) = abap_true.
     DATA(l_add_method_parameters) = abap_false.
     DATA(l_delete_method_parameters) = abap_false.
     DATA(l_get_method_section) = abap_false.
@@ -1014,9 +1014,9 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
-    IF l_change_method_source_code = abap_true.
+    IF l_change_method_implementation = abap_true.
 
-      l_response = me->change_method_source_code(
+      l_response = me->change_method_implementation(
         EXPORTING
           i_class_name        = 'ZCL_CJS_00001'
           i_method_name       = 'YIF_AAIC_CHAT~CHAT'
