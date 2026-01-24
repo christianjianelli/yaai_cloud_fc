@@ -175,9 +175,24 @@ CLASS ycl_aaic_class_tools DEFINITION
         e_t_class_methods_private TYPE sxco_t_clas_c_methods
         e_t_methods_private       TYPE sxco_t_clas_c_methods.
 
-    METHODS _importings_params_to_string
+    METHODS _importing_params_to_string
       IMPORTING
                 i_t_importing_parameters   TYPE sxco_t_ao_s_p_importings
+      RETURNING VALUE(r_parameters_string) TYPE string.
+
+    METHODS _exporting_params_to_string
+      IMPORTING
+                i_t_exporting_parameters   TYPE sxco_t_ao_s_p_exportings
+      RETURNING VALUE(r_parameters_string) TYPE string.
+
+    METHODS _changing_params_to_string
+      IMPORTING
+                i_t_changing_parameters    TYPE sxco_t_ao_s_p_changings
+      RETURNING VALUE(r_parameters_string) TYPE string.
+
+    METHODS _returning_param_to_string
+      IMPORTING
+                i_t_returning_parameter    TYPE sxco_t_ao_s_p_returnings
       RETURNING VALUE(r_parameters_string) TYPE string.
 
 
@@ -307,22 +322,22 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       lo_method_definition->add_exporting_parameter( CONV #( <ls_exporting_params>-name )
         )->set_pass_by_reference(
-        )->set_type( xco_cp_abap=>type-source->for( <ls_importing_params>-type ) ).
+        )->set_type( xco_cp_abap=>type-source->for( <ls_exporting_params>-type ) ).
 
     ENDLOOP.
 
-    LOOP AT i_t_changing_params ASSIGNING FIELD-SYMBOL(<ls_changingg_params>).
+    LOOP AT i_t_changing_params ASSIGNING FIELD-SYMBOL(<ls_changing_params>).
 
-      lo_method_definition->add_changing_parameter( CONV #( <ls_importing_params>-name )
+      lo_method_definition->add_changing_parameter( CONV #( <ls_changing_params>-name )
         )->set_pass_by_reference(
-        )->set_type( xco_cp_abap=>type-source->for( <ls_importing_params>-type ) ).
+        )->set_type( xco_cp_abap=>type-source->for( <ls_changing_params>-type ) ).
 
     ENDLOOP.
 
     IF i_s_returning_param IS NOT INITIAL.
 
       lo_method_definition->add_returning_parameter( CONV #( i_s_returning_param-name )
-        )->set_type( xco_cp_abap=>type-source->for( <ls_importing_params>-type ) ).
+        )->set_type( xco_cp_abap=>type-source->for( i_s_returning_param-type ) ).
 
     ENDIF.
 
@@ -474,22 +489,22 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       lo_method_definition->for-insert->add_exporting_parameter( CONV #( <ls_exporting_params>-name )
         )->set_pass_by_reference(
-        )->set_type( xco_cp_abap=>type-source->for( <ls_importing_params>-type ) ).
+        )->set_type( xco_cp_abap=>type-source->for( <ls_exporting_params>-type ) ).
 
     ENDLOOP.
 
-    LOOP AT i_t_changing_params ASSIGNING FIELD-SYMBOL(<ls_changingg_params>).
+    LOOP AT i_t_changing_params ASSIGNING FIELD-SYMBOL(<ls_changing_params>).
 
-      lo_method_definition->for-insert->add_changing_parameter( CONV #( <ls_importing_params>-name )
+      lo_method_definition->for-insert->add_changing_parameter( CONV #( <ls_changing_params>-name )
         )->set_pass_by_reference(
-        )->set_type( xco_cp_abap=>type-source->for( <ls_importing_params>-type ) ).
+        )->set_type( xco_cp_abap=>type-source->for( <ls_changing_params>-type ) ).
 
     ENDLOOP.
 
     IF i_s_returning_param IS NOT INITIAL.
 
       lo_method_definition->for-insert->add_returning_parameter( CONV #( i_s_returning_param-name )
-        )->set_type( xco_cp_abap=>type-source->for( <ls_importing_params>-type ) ).
+        )->set_type( xco_cp_abap=>type-source->for( i_s_returning_param-type ) ).
 
     ENDIF.
 
@@ -959,10 +974,19 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    r_response = |METHOD { l_method_name }{ cl_abap_char_utilities=>newline }|.
+    r_response = |METHOD { l_method_name }|.
 
     " IMPORTING parameters.
-    r_response = |{ r_response }{ me->_importings_params_to_string( lo_method->importing_parameters->all->get( ) ) }|.
+    r_response = |{ r_response }{ me->_importing_params_to_string( lo_method->importing_parameters->all->get( ) ) }|.
+
+    " EXPORTING parameters.
+    r_response = |{ r_response }{ me->_exporting_params_to_string( lo_method->exporting_parameters->all->get( ) ) }|.
+
+    " CHANGING parameters.
+    r_response = |{ r_response }{ me->_changing_params_to_string( lo_method->changing_parameters->all->get( ) ) }|.
+
+    " RETURNING parameters.
+    r_response = |{ r_response }{ me->_returning_param_to_string( lo_method->returning_parameters->all->get( ) ) }|.
 
   ENDMETHOD.
 
@@ -1201,30 +1225,174 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD _importings_params_to_string.
+  METHOD _importing_params_to_string.
 
-    r_parameters_string = |IMPORTING{ cl_abap_char_utilities=>newline }|.
+    CLEAR r_parameters_string.
+
+    IF i_t_importing_parameters IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    r_parameters_string = |{ cl_abap_char_utilities=>newline }IMPORTING|.
 
     LOOP AT i_t_importing_parameters ASSIGNING FIELD-SYMBOL(<lo_importing_parameter>).
 
-      DATA(ls_returning_parameter) = <lo_importing_parameter>->content( )->get( ).
+      r_parameters_string = |{ r_parameters_string }{ cl_abap_char_utilities=>newline }|.
 
       r_parameters_string = |{ r_parameters_string }{ <lo_importing_parameter>->name }|.
 
-      DATA(lt_lines) = ls_returning_parameter-typing_definition->if_xco_printable~get_text( )->get_lines( )->value.
+      DATA(ls_parameter) = <lo_importing_parameter>->content( )->get( ).
 
-      IF lt_lines IS NOT INITIAL.
+      DATA(l_type) = ls_parameter-typing_definition->get_value( ).
 
-        r_parameters_string = |{ r_parameters_string } TYPE|.
+      " XCO Read API has bug reading the code generated by XCO generation API.
+      " Without activating the class in Eclipse the XCO Read API doesn't read the properties of the importing parameter correctly.
+      " The parameter type is read with all text that comes after TYPE (example: REF TO, DEFAULT, OPTIONAL)
+      SPLIT l_type AT space INTO DATA(l_xco_bug_1) DATA(l_xco_bug_2).
 
-        LOOP AT lt_lines INTO DATA(l_line).
+      IF l_xco_bug_2 IS INITIAL.
 
-          r_parameters_string = |{ r_parameters_string } { l_line }|.
+        DATA(l_type_ref) = ls_parameter-typing_method->if_xco_printable~get_text( )->get_lines( )->join( )->value.
 
-        ENDLOOP.
+        IF l_type_ref = 'OBJECT_REFERENCE'.
+          r_parameters_string = |{ r_parameters_string } TYPE REF TO { l_type }|.
+        ELSE.
+          r_parameters_string = |{ r_parameters_string } TYPE { l_type }|.
+        ENDIF.
 
-        r_parameters_string = |{ r_parameters_string }{ cl_abap_char_utilities=>newline }|.
+        IF ls_parameter-default_value IS NOT INITIAL.
+          r_parameters_string = |{ r_parameters_string } DEFAULT { ls_parameter-default_value }|.
+        ENDIF.
 
+        IF ls_parameter-optional_indicator = abap_true.
+          r_parameters_string = |{ r_parameters_string } OPTIONAL|.
+        ENDIF.
+
+      ELSE.
+
+        " Workaround for the XCO Read API bug.
+        " Variable l_type (typing_definition) has all text that comes after TYPE (example: REF TO, DEFAULT, OPTIONAL)
+        r_parameters_string = |{ r_parameters_string } TYPE { l_type }|.
+
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD _exporting_params_to_string.
+
+    CLEAR r_parameters_string.
+
+    IF i_t_exporting_parameters IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    r_parameters_string = |{ cl_abap_char_utilities=>newline }EXPORTING|.
+
+    LOOP AT i_t_exporting_parameters ASSIGNING FIELD-SYMBOL(<lo_exporting_parameter>).
+
+      r_parameters_string = |{ r_parameters_string }{ cl_abap_char_utilities=>newline }|.
+
+      r_parameters_string = |{ r_parameters_string }{ <lo_exporting_parameter>->name }|.
+
+      DATA(ls_parameter) = <lo_exporting_parameter>->content( )->get( ).
+
+      DATA(l_type) = ls_parameter-typing_definition->get_value( ).
+
+      DATA(l_type_ref) = ls_parameter-typing_method->if_xco_printable~get_text( )->get_lines( )->join( )->value.
+
+      IF l_type_ref = 'OBJECT_REFERENCE'.
+        r_parameters_string = |{ r_parameters_string } TYPE REF TO { l_type }|.
+      ELSE.
+        r_parameters_string = |{ r_parameters_string } TYPE { l_type }|.
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD _changing_params_to_string.
+
+    CLEAR r_parameters_string.
+
+    IF i_t_changing_parameters IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    r_parameters_string = |{ cl_abap_char_utilities=>newline }CHANGING|.
+
+    LOOP AT i_t_changing_parameters ASSIGNING FIELD-SYMBOL(<lo_changing_parameter>).
+
+      r_parameters_string = |{ r_parameters_string }{ cl_abap_char_utilities=>newline }|.
+
+      r_parameters_string = |{ r_parameters_string }{ <lo_changing_parameter>->name }|.
+
+      DATA(ls_parameter) = <lo_changing_parameter>->content( )->get( ).
+
+      DATA(l_type) = ls_parameter-typing_definition->get_value( ).
+
+      " XCO Read API has bug reading the code generated by XCO generation API.
+      " Without activating the class in Eclipse the XCO Read API doesn't read the properties of the importing parameter correctly.
+      " The parameter type is read with all text that comes after TYPE (example: REF TO, DEFAULT, OPTIONAL)
+      SPLIT l_type AT space INTO DATA(l_xco_bug_1) DATA(l_xco_bug_2).
+
+      IF l_xco_bug_2 IS INITIAL.
+
+        DATA(l_type_ref) = ls_parameter-typing_method->if_xco_printable~get_text( )->get_lines( )->join( )->value.
+
+        IF l_type_ref = 'OBJECT_REFERENCE'.
+          r_parameters_string = |{ r_parameters_string } TYPE REF TO { l_type }|.
+        ELSE.
+          r_parameters_string = |{ r_parameters_string } TYPE { l_type }|.
+        ENDIF.
+
+        IF ls_parameter-default_value IS NOT INITIAL.
+          r_parameters_string = |{ r_parameters_string } DEFAULT { ls_parameter-default_value }|.
+        ENDIF.
+
+        IF ls_parameter-optional_indicator = abap_true.
+          r_parameters_string = |{ r_parameters_string } OPTIONAL|.
+        ENDIF.
+
+      ELSE.
+
+        " Workaround for the XCO Read API bug.
+        " Variable l_type (typing_definition) has all text that comes after TYPE (example: REF TO, DEFAULT, OPTIONAL)
+        r_parameters_string = |{ r_parameters_string } TYPE { l_type }|.
+
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD _returning_param_to_string.
+
+    CLEAR r_parameters_string.
+
+    IF i_t_returning_parameter IS INITIAL.
+      RETURN.
+    ENDIF.
+
+    r_parameters_string = |{ cl_abap_char_utilities=>newline }RETURNING|.
+
+    LOOP AT i_t_returning_parameter ASSIGNING FIELD-SYMBOL(<lo_returning_parameter>).
+
+      r_parameters_string = |{ r_parameters_string }{ cl_abap_char_utilities=>newline }|.
+
+      r_parameters_string = |{ r_parameters_string }{ <lo_returning_parameter>->name }|.
+
+      DATA(ls_parameter) = <lo_returning_parameter>->content( )->get( ).
+
+      DATA(l_type) = ls_parameter-typing_definition->get_value( ).
+
+      DATA(l_type_ref) = ls_parameter-typing_method->if_xco_printable~get_text( )->get_lines( )->join( )->value.
+
+      IF l_type_ref = 'OBJECT_REFERENCE'.
+        r_parameters_string = |{ r_parameters_string } TYPE REF TO { l_type }|.
+      ELSE.
+        r_parameters_string = |{ r_parameters_string } TYPE { l_type }|.
       ENDIF.
 
     ENDLOOP.
@@ -1266,14 +1434,21 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       l_response = me->add_method(
         EXPORTING
-          i_class_name        = 'ZCL_CJS_00001'
-          i_method_name       = 'M1'
-          i_description       = 'Method M1'
-          i_transport_request = 'TRLK900008'
-          i_source            = |IF 1 = 2. { cl_abap_char_utilities=>newline } ENDIF.|
+          i_class_name         = 'ZCL_CJS_00001'
+          i_method_name        = 'M1'
+          i_description        = 'Method M1'
+          i_transport_request  = 'TRLK900008'
+          i_source             = |IF 1 = 2. { cl_abap_char_utilities=>newline } ENDIF.|
           i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )
                                           ( name = 'P2' type = 'STRING' )
                                           ( name = 'P3' type = 'REF TO YIF_AAIC_DB OPTIONAL' ) )
+*          i_t_exporting_params = VALUE #( ( name = 'E_API' type = |YDE_AAIC_API| )
+*                                          ( name = 'E_STR' type = 'STRING' )
+*                                          ( name = 'E_CHAT' type = 'REF TO YIF_AAIC_CHAT' ) )
+*          i_t_changing_params  = VALUE #( ( name = 'CH_API' type = |YDE_AAIC_API| )
+*                                          ( name = 'CH_STR' type = 'STRING' )
+*                                          ( name = 'CH_CHAT' type = 'REF TO YIF_AAIC_CHAT' ) )
+          i_s_returning_param = VALUE #( name = 'r_api' type = |YDE_AAIC_API| )
         ).
 
     ENDIF.
