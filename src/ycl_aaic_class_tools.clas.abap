@@ -89,6 +89,39 @@ CLASS ycl_aaic_class_tools DEFINITION
                 i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
       RETURNING VALUE(r_response)   TYPE string.
 
+    METHODS get_class_definition
+      IMPORTING
+                i_class_name      TYPE yde_aaic_class_name
+      RETURNING VALUE(r_response) TYPE string.
+
+    METHODS get_method_definition
+      IMPORTING
+                i_class_name      TYPE yde_aaic_class_name
+                i_method_name     TYPE yde_aaic_method_name
+      RETURNING VALUE(r_response) TYPE string.
+
+    METHODS get_method_implementation
+      IMPORTING
+                i_class_name      TYPE yde_aaic_class_name
+                i_method_name     TYPE yde_aaic_method_name
+      RETURNING VALUE(r_response) TYPE string.
+
+    METHODS get_translation
+      IMPORTING
+                i_class_name      TYPE yde_aaic_class_name
+                i_text_symbol_id  TYPE string
+                i_language        TYPE spras
+      RETURNING VALUE(r_response) TYPE string.
+
+    METHODS set_translation
+      IMPORTING
+                i_class_name        TYPE yde_aaic_class_name
+                i_text_symbol_id    TYPE string
+                i_language          TYPE spras
+                i_text              TYPE string
+                i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
+      RETURNING VALUE(r_response)   TYPE string.
+
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -123,6 +156,30 @@ CLASS ycl_aaic_class_tools DEFINITION
       IMPORTING
                 i_class_name     TYPE yde_aaic_class_name
       RETURNING VALUE(r_package) TYPE sxco_package.
+
+    METHODS _get_attributes
+      IMPORTING
+        io_class                TYPE REF TO if_xco_ao_class
+      EXPORTING
+        e_t_class_datas_public  TYPE sxco_t_ao_c_class_datas
+        e_t_datas_public        TYPE sxco_t_ao_c_datas
+        e_t_class_datas_private TYPE sxco_t_ao_c_class_datas
+        e_t_datas_private       TYPE sxco_t_ao_c_datas.
+
+    METHODS _get_methods
+      IMPORTING
+        io_class                  TYPE REF TO if_xco_ao_class
+      EXPORTING
+        e_t_class_methods_public  TYPE sxco_t_clas_c_methods
+        e_t_methods_public        TYPE sxco_t_clas_c_methods
+        e_t_class_methods_private TYPE sxco_t_clas_c_methods
+        e_t_methods_private       TYPE sxco_t_clas_c_methods.
+
+    METHODS _importings_params_to_string
+      IMPORTING
+                i_t_importing_parameters   TYPE sxco_t_ao_s_p_importings
+      RETURNING VALUE(r_parameters_string) TYPE string.
+
 
 ENDCLASS.
 
@@ -805,6 +862,207 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD get_class_definition.
+
+    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
+
+    TRY.
+
+        DATA(lo_class) = xco_cp_abap=>class( l_class_name ).
+
+        IF lo_class->exists( ) = abap_false.
+          r_response = |The class `{ l_class_name }` does not exist.|.
+          RETURN.
+        ENDIF.
+
+        DATA(lt_interfaces) = lo_class->definition->content( )->get_interfaces( ).
+
+        DATA(lo_superclass) = lo_class->definition->content( )->get_superclass( ).
+
+      CATCH cx_xco_runtime_exception ##NO_HANDLER.
+
+        r_response = |Error while reading the definition of the class `{ l_class_name }`.|.
+
+        RETURN.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD get_method_definition.
+
+    CLEAR r_response.
+
+    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
+
+    DATA(l_method_name) = CONV sxco_clas_method_name( condense( to_upper( i_method_name ) ) ).
+
+    DATA(lo_class) = xco_cp_abap=>class( l_class_name ).
+
+    IF lo_class->exists( ) = abap_false.
+      r_response = |The class `{ l_class_name }` does not exist.|.
+      RETURN.
+    ENDIF.
+
+    me->_get_method_section(
+      EXPORTING
+        i_class_name  = l_class_name
+        i_method_name = CONV #( l_method_name )
+      IMPORTING
+        e_section     = DATA(l_section)
+        e_static      = DATA(l_static)
+    ).
+
+    IF l_section IS INITIAL.
+      r_response = |The method `{ l_method_name }` does not exist in class `{ l_class_name }`.|.
+      RETURN.
+    ENDIF.
+
+    TRY.
+
+        IF l_section = mc_public.
+
+          IF l_static = abap_true.
+
+            DATA(lo_method) = lo_class->definition->section-public->component->class_method( l_method_name ).
+
+          ELSE.
+
+            lo_method = lo_class->definition->section-public->component->method( l_method_name ).
+
+          ENDIF.
+
+        ELSE.
+
+          IF l_static = abap_true.
+
+            lo_method = lo_class->definition->section-private->component->class_method( l_method_name ).
+
+          ELSE.
+
+            lo_method = lo_class->definition->section-private->component->method( l_method_name ).
+
+          ENDIF.
+
+        ENDIF.
+
+      CATCH cx_xco_runtime_exception ##NO_HANDLER.
+
+        r_response = |Error while reading the definition of the method `{ l_method_name }` of class `{ l_class_name }`.|.
+
+        RETURN.
+
+    ENDTRY.
+
+    IF lo_method IS NOT BOUND.
+      r_response = |Error while reading the definition of the method `{ l_method_name }` of class `{ l_class_name }`.|.
+      RETURN.
+    ENDIF.
+
+    r_response = |METHOD { l_method_name }{ cl_abap_char_utilities=>newline }|.
+
+    " IMPORTING parameters.
+    r_response = |{ r_response }{ me->_importings_params_to_string( lo_method->importing_parameters->all->get( ) ) }|.
+
+  ENDMETHOD.
+
+  METHOD get_method_implementation.
+
+  ENDMETHOD.
+
+  METHOD get_translation.
+
+    CLEAR r_response.
+
+    DATA(l_language) = i_language.
+
+    l_language = to_upper( l_language ).
+
+    DATA(lo_language) = xco_cp=>language( l_language ).
+
+    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
+
+    DATA(lo_class) = xco_cp_abap=>class( l_class_name ).
+
+    IF lo_class->exists( ) = abap_false.
+      r_response = |The class `{ l_class_name }` does not exist.|.
+      RETURN.
+    ENDIF.
+
+    DATA(lo_text_attribute) = xco_cp_text_pool=>text_attribute->text_element_text.
+
+    TRY.
+
+        DATA(lo_target) = xco_cp_i18n=>target->text_pool->class_text_symbol( iv_class_name = l_class_name
+                                                                             iv_text_symbol_id = CONV #( i_text_symbol_id ) ).
+
+        DATA(lo_translation) = lo_target->get_translation( io_language = lo_language
+                                                           it_text_attributes = VALUE #( ( lo_text_attribute ) ) ).
+
+        LOOP AT lo_translation->texts INTO DATA(lo_text).
+          r_response = lo_text_attribute->if_xco_i18n_text_attribute~get_string_for_text( lo_text->value ).
+        ENDLOOP.
+
+      CATCH cx_xco_runtime_exception ##NO_HANDLER.
+
+        r_response = |The text symbol id `{ i_text_symbol_id }` does not exist in the class `{ l_class_name }`.|.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD set_translation.
+
+    CLEAR r_response.
+
+    DATA(l_language) = i_language.
+
+    l_language = to_upper( l_language ).
+
+    DATA(lo_language) = xco_cp=>language( l_language ).
+
+    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
+
+    DATA(lo_class) = xco_cp_abap=>class( l_class_name ).
+
+    IF lo_class->exists( ) = abap_false.
+      r_response = |The class `{ l_class_name }` does not exist.|.
+      RETURN.
+    ENDIF.
+
+    DATA(l_transport_request) = me->_get_transport_request( l_class_name ).
+
+    IF l_transport_request IS INITIAL.
+      l_transport_request = condense( to_upper( i_transport_request ) ).
+    ENDIF.
+
+    DATA(lo_transport_request) = xco_cp_cts=>transport->for( iv_transport = l_transport_request ).
+
+    DATA(lo_text_attribute) = xco_cp_text_pool=>text_attribute->text_element_text.
+
+    DATA(lo_text) = lo_text_attribute->create_text( xco_cp=>string( i_text ) ).
+
+    TRY.
+
+        DATA(lo_target) = xco_cp_i18n=>target->text_pool->class_text_symbol( iv_class_name = l_class_name
+                                                                             iv_text_symbol_id = CONV #( i_text_symbol_id ) ).
+
+        lo_target->set_translation(
+          it_texts           = VALUE #( ( lo_text ) )
+          io_language        = lo_language
+          io_change_scenario = lo_transport_request
+        ).
+
+        r_response = |The translation of text symbol id `{ i_text_symbol_id }` of class `{ l_class_name }` was saved.|.
+
+      CATCH cx_xco_runtime_exception ##NO_HANDLER.
+
+        r_response = |Error! The translation of text symbol id `{ i_text_symbol_id }` of class `{ l_class_name }` was not saved.|.
+
+    ENDTRY.
+
+  ENDMETHOD.
+
   METHOD _add_findings_to_response.
 
     DATA(lt_findings) = i_o_findings->get( ).
@@ -919,6 +1177,60 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD _get_attributes.
+
+    e_t_class_datas_public = io_class->definition->section-public->components->class_data->all->get( ).
+
+    e_t_datas_public = io_class->definition->section-public->components->data->all->get( ).
+
+    e_t_class_datas_private = io_class->definition->section-private->components->class_data->all->get( ).
+
+    e_t_datas_private = io_class->definition->section-private->components->data->all->get( ).
+
+  ENDMETHOD.
+
+  METHOD _get_methods.
+
+    e_t_class_methods_public = io_class->definition->section-public->components->class_method->all->get( ).
+
+    e_t_methods_public = io_class->definition->section-public->components->method->all->get( ).
+
+    e_t_class_methods_private = io_class->definition->section-private->components->class_method->all->get( ).
+
+    e_t_methods_private = io_class->definition->section-private->components->method->all->get( ).
+
+  ENDMETHOD.
+
+  METHOD _importings_params_to_string.
+
+    r_parameters_string = |IMPORTING{ cl_abap_char_utilities=>newline }|.
+
+    LOOP AT i_t_importing_parameters ASSIGNING FIELD-SYMBOL(<lo_importing_parameter>).
+
+      DATA(ls_returning_parameter) = <lo_importing_parameter>->content( )->get( ).
+
+      r_parameters_string = |{ r_parameters_string }{ <lo_importing_parameter>->name }|.
+
+      DATA(lt_lines) = ls_returning_parameter-typing_definition->if_xco_printable~get_text( )->get_lines( )->value.
+
+      IF lt_lines IS NOT INITIAL.
+
+        r_parameters_string = |{ r_parameters_string } TYPE|.
+
+        LOOP AT lt_lines INTO DATA(l_line).
+
+          r_parameters_string = |{ r_parameters_string } { l_line }|.
+
+        ENDLOOP.
+
+        r_parameters_string = |{ r_parameters_string }{ cl_abap_char_utilities=>newline }|.
+
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
   METHOD if_oo_adt_classrun~main.
 
     DATA l_response TYPE string.
@@ -929,10 +1241,13 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(l_delete) = abap_false.
     DATA(l_add_attribute) = abap_false.
     DATA(l_delete_attribute) = abap_false.
-    DATA(l_change_method_implementation) = abap_true.
+    DATA(l_change_method_implementation) = abap_false.
     DATA(l_add_method_parameters) = abap_false.
     DATA(l_delete_method_parameters) = abap_false.
     DATA(l_get_method_section) = abap_false.
+    DATA(l_get_translation) = abap_false.
+    DATA(l_set_translation) = abap_false.
+    DATA(l_get_method_definition) = abap_true.
 
     IF l_create = abap_true.
 
@@ -952,8 +1267,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       l_response = me->add_method(
         EXPORTING
           i_class_name        = 'ZCL_CJS_00001'
-          i_method_name       = 'YIF_AAIC_CHAT~CHAT'
-          i_description       = 'Chat'
+          i_method_name       = 'M1'
+          i_description       = 'Method M1'
           i_transport_request = 'TRLK900008'
           i_source            = |IF 1 = 2. { cl_abap_char_utilities=>newline } ENDIF.|
           i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )
@@ -968,14 +1283,14 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       l_response = me->add_method(
         EXPORTING
           i_class_name        = 'ZCL_CJS_00001'
-          i_method_name       = 'CHAT'
+          i_method_name       = 'CM1'
           i_static            = abap_true
           i_description       = 'Chat'
           i_transport_request = 'TRLK900008'
           i_source            = |IF 1 = 2.{ cl_abap_char_utilities=>newline }  "Class Method{ cl_abap_char_utilities=>newline }ENDIF.|
-*          i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )
-*                                          ( name = 'P2' type = 'STRING' )
-*                                          ( name = 'P3' type = 'REF TO YIF_AAIC_DB OPTIONAL' ) )
+          i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )
+                                          ( name = 'P2' type = 'STRING' )
+                                          ( name = 'P3' type = 'REF TO YIF_AAIC_DB OPTIONAL' ) )
         ).
 
     ENDIF.
@@ -1072,7 +1387,39 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
+    IF l_get_translation = abap_true.
+
+      l_response = me->get_translation(
+        EXPORTING
+          i_class_name     = 'ZCL_CJS_00001'
+          i_text_symbol_id = '002'
+          i_language       = 'P'
+      ).
+
+    ENDIF.
+
+    IF l_set_translation = abap_true.
+
+      l_response = me->set_translation(
+        EXPORTING
+          i_class_name        = 'ZCL_CJS_00001'
+          i_text_symbol_id    = '002'
+          i_language          = 'P'
+          i_text              = 'Olá Mundo!'
+          i_transport_request = 'TRLK900008'
+      ).
+
+    ENDIF.
+
+    IF l_get_method_definition = abap_true.
+
+      l_response = me->get_method_definition( i_class_name  = 'ZCL_CJS_00001'
+                                              i_method_name = 'M1' ).
+
+    ENDIF.
+
     out->write( l_response ).
 
   ENDMETHOD.
+
 ENDCLASS.
