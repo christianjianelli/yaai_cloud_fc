@@ -232,6 +232,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   METHOD create.
 
+    CLEAR r_response.
+
     DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
 
     DATA(l_package) = CONV sxco_package( condense( to_upper( i_package ) ) ).
@@ -751,13 +753,11 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   METHOD add_attribute.
 
-    DATA lt_source TYPE STANDARD TABLE OF string.
-
     CLEAR r_response.
 
     DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
 
-    DATA(l_attribute_name) = CONV sxco_clas_method_name( condense( i_attribute_name ) ).
+    DATA(l_attribute_name) = CONV sxco_ao_component_name( condense( i_attribute_name ) ).
 
     DATA(l_section) = CONV sxco_clas_method_name( to_upper( condense( i_class_section ) ) ).
 
@@ -781,7 +781,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       IF i_static = abap_false.
 
-        DATA(lo_data) = lo_patch_operation_object->for-insert->definition->section-private->add_data( CONV #( l_attribute_name )
+        DATA(lo_data) = lo_patch_operation_object->for-insert->definition->section-private->add_data( l_attribute_name
           )->set_type( xco_cp_abap=>type-source->for( i_attribute_type ) ).
 
         IF i_default_value IS NOT INITIAL.
@@ -790,7 +790,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       ELSE.
 
-        DATA(lo_class_data) = lo_patch_operation_object->for-insert->definition->section-private->add_class_data( CONV #( l_attribute_name )
+        DATA(lo_class_data) = lo_patch_operation_object->for-insert->definition->section-private->add_class_data( l_attribute_name
           )->set_type( xco_cp_abap=>type-source->for( i_attribute_type ) ).
 
         IF i_default_value IS NOT INITIAL.
@@ -803,7 +803,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       IF i_static = abap_false.
 
-        lo_data = lo_patch_operation_object->for-insert->definition->section-public->add_data( CONV #( l_attribute_name )
+        lo_data = lo_patch_operation_object->for-insert->definition->section-public->add_data( l_attribute_name
           )->set_type( xco_cp_abap=>type-source->for( i_attribute_type )
           )->set_read_only( i_read_only ).
 
@@ -813,7 +813,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       ELSE.
 
-        lo_class_data = lo_patch_operation_object->for-insert->definition->section-public->add_class_data( CONV #( l_attribute_name )
+        lo_class_data = lo_patch_operation_object->for-insert->definition->section-public->add_class_data( l_attribute_name
           )->set_type( xco_cp_abap=>type-source->for( i_attribute_type )
           )->set_read_only( i_read_only ).
 
@@ -854,7 +854,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
 
-    DATA(l_attribute_name) = CONV sxco_clas_method_name( condense( i_attribute_name ) ).
+    DATA(l_attribute_name) = CONV sxco_ao_component_name( condense( i_attribute_name ) ).
 
     IF xco_cp_abap=>class( l_class_name )->exists( ) = abap_false.
       r_response = |The class `{ l_class_name }` does not exist.|.
@@ -885,11 +885,11 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       IF l_static = abap_false.
 
-        lo_patch_operation_object->for-delete->definition->section-private->add_data( CONV #( l_attribute_name ) ).
+        lo_patch_operation_object->for-delete->definition->section-private->add_data( l_attribute_name ).
 
       ELSE.
 
-        lo_patch_operation_object->for-delete->definition->section-private->add_class_data( CONV #( l_attribute_name ) ).
+        lo_patch_operation_object->for-delete->definition->section-private->add_class_data( l_attribute_name ).
 
       ENDIF.
 
@@ -897,11 +897,11 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       IF l_static = abap_false.
 
-        lo_patch_operation_object->for-delete->definition->section-public->add_data( CONV #( l_attribute_name ) ).
+        lo_patch_operation_object->for-delete->definition->section-public->add_data( l_attribute_name ).
 
       ELSE.
 
-        lo_patch_operation_object->for-delete->definition->section-public->add_class_data( CONV #( l_attribute_name ) ).
+        lo_patch_operation_object->for-delete->definition->section-public->add_class_data( l_attribute_name ).
 
       ENDIF.
 
