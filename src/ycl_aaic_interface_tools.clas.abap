@@ -91,22 +91,6 @@ CLASS ycl_aaic_interface_tools DEFINITION
                 i_method_name     TYPE yde_aaic_method_name
       RETURNING VALUE(r_response) TYPE string.
 
-    METHODS get_translation
-      IMPORTING
-                i_interface_name  TYPE yde_aaic_fc_interface_name
-                i_text_symbol_id  TYPE string
-                i_language        TYPE spras
-      RETURNING VALUE(r_response) TYPE string.
-
-    METHODS set_translation
-      IMPORTING
-                i_interface_name    TYPE yde_aaic_fc_interface_name
-                i_text_symbol_id    TYPE string
-                i_language          TYPE spras
-                i_text              TYPE string
-                i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
-      RETURNING VALUE(r_response)   TYPE string.
-
   PROTECTED SECTION.
 
   PRIVATE SECTION.
@@ -744,254 +728,124 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
         RETURN.
 
     ENDTRY.
-*
-*    " CLASS DEFINITION
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    r_response = |CLASS { l_class_name } DEFINITION.{ cl_abap_char_utilities=>newline }{ cl_abap_char_utilities=>newline }|.
-*
-*    " PUBLIC SECTION
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    r_response = |{ r_response }PUBLIC SECTION.{ cl_abap_char_utilities=>newline }|.
-*
-*    IF l_interfaces IS NOT INITIAL.
+
+    " INTERFACE DEFINITION
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    r_response = |INTERFACE { l_interface_name }.{ cl_abap_char_utilities=>newline }|.
+
+    " TYPES
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_public_types ASSIGNING FIELD-SYMBOL(<ls_public_type>).
+
+      DATA(l_type) = me->_type_to_string( <ls_public_type> ).
+
+      IF l_type IS NOT INITIAL.
+        l_public_types = |{ l_public_types }{ cl_abap_char_utilities=>newline }|.
+        l_public_types = |{ l_public_types }TYPES: { l_type }.|.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF l_public_types IS NOT INITIAL.
 *      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_interfaces }|.
-*    ENDIF.
-*
-*    " PUBLIC TYPES
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_public_types ASSIGNING FIELD-SYMBOL(<ls_public_type>).
-*
-*      DATA(l_type) = me->_type_to_string( <ls_public_type> ).
-*
-*      IF l_type IS NOT INITIAL.
-*        l_public_types = |{ l_public_types }{ cl_abap_char_utilities=>newline }|.
-*        l_public_types = |{ l_public_types }TYPES: { l_type }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_public_types IS NOT INITIAL.
-**      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_public_types }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PUBLIC CONSTANTS
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_public_constants ASSIGNING FIELD-SYMBOL(<ls_public_constant>).
-*
-*      DATA(l_constant) = me->_constant_to_string( <ls_public_constant> ).
-*
-*      IF l_constant IS NOT INITIAL.
-*        l_public_constants = |{ l_public_constants }{ cl_abap_char_utilities=>newline }|.
-*        l_public_constants = |{ l_public_constants }CONSTANTS { l_constant }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_public_constants IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_public_constants }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PUBLIC CLASS-DATA
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_public_class_data ASSIGNING FIELD-SYMBOL(<ls_public_class_data>).
-*
-*      DATA(l_class_data) = me->_class_data_to_string( <ls_public_class_data> ).
-*
-*      IF l_class_data IS NOT INITIAL.
-*        l_public_class_data = |{ l_public_class_data }{ cl_abap_char_utilities=>newline }|.
-*        l_public_class_data = |{ l_public_class_data }CLASS-DATA { l_class_data }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_public_class_data IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_public_class_data }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PUBLIC DATA
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_public_data ASSIGNING FIELD-SYMBOL(<ls_public_data>).
-*
-*      DATA(l_data) = me->_data_to_string( <ls_public_data> ).
-*
-*      IF l_data IS NOT INITIAL.
-*        l_public_data = |{ l_public_data }{ cl_abap_char_utilities=>newline }|.
-*        l_public_data = |{ l_public_data }DATA { l_data }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_public_data IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_public_data }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PUBLIC CLASS-METHODS
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_public_class_methods ASSIGNING FIELD-SYMBOL(<ls_public_class_method>).
-*
-*      DATA(l_method_definition) = me->get_method_definition(
-*        EXPORTING
-*          i_interface_name  = l_class_name
-*          i_method_name = CONV #( <ls_public_class_method>->name )
-*      ).
-*
-*      l_public_class_methods = |{ l_public_class_methods }{ cl_abap_char_utilities=>newline }|.
-*
-*      l_public_class_methods = |{ l_public_class_methods }{ l_method_definition }|.
-*
-*    ENDLOOP.
-*
-*    IF l_public_class_methods IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_public_class_methods }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PUBLIC METHODS
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_public_methods ASSIGNING FIELD-SYMBOL(<ls_public_method>).
-*
-*      l_method_definition = me->get_method_definition(
-*        EXPORTING
-*          i_interface_name  = l_class_name
-*          i_method_name = CONV #( <ls_public_method>->name )
-*      ).
-*
-*      l_public_methods = |{ l_public_methods }{ cl_abap_char_utilities=>newline }|.
-*
-*      l_public_methods = |{ l_public_methods }{ l_method_definition }|.
-*
-*    ENDLOOP.
-*
-*    IF l_public_methods IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_public_methods }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PRIVATE SECTION
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*    r_response = |{ r_response }PRIVATE SECTION.{ cl_abap_char_utilities=>newline }|.
-*
-*
-*    " PRIVATE TYPES
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_private_types ASSIGNING FIELD-SYMBOL(<ls_private_type>).
-*
-*      l_type = me->_type_to_string( <ls_private_type> ).
-*
-*      IF l_type IS NOT INITIAL.
-*        l_private_types = |{ l_private_types }{ cl_abap_char_utilities=>newline }|.
-*        l_private_types = |{ l_private_types }TYPES: { l_type }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_private_types IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_private_types }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*
-*    " PRIVATE CONSTANTS
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_private_constants ASSIGNING FIELD-SYMBOL(<ls_private_constant>).
-*
-*      l_constant = me->_constant_to_string( <ls_private_constant> ).
-*
-*      IF l_constant IS NOT INITIAL.
-*        l_private_constants = |{ l_private_constants }{ cl_abap_char_utilities=>newline }|.
-*        l_private_constants = |{ l_private_constants }CONSTANTS { l_constant }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_private_constants IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_private_constants }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PRIVATE CLASS-DATA
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_private_class_data ASSIGNING FIELD-SYMBOL(<ls_private_class_data>).
-*
-*      l_class_data = me->_class_data_to_string( <ls_private_class_data> ).
-*
-*      IF l_class_data IS NOT INITIAL.
-*        l_private_class_data = |{ l_private_class_data }{ cl_abap_char_utilities=>newline }|.
-*        l_private_class_data = |{ l_private_class_data }CLASS-DATA { l_class_data }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_private_class_data IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_private_class_data }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PRIVATE DATA
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_private_data ASSIGNING FIELD-SYMBOL(<ls_private_data>).
-*
-*      l_data = me->_data_to_string( <ls_private_data> ).
-*
-*      IF l_data IS NOT INITIAL.
-*        l_private_data = |{ l_private_data }{ cl_abap_char_utilities=>newline }|.
-*        l_private_data = |{ l_private_data }DATA { l_data }.|.
-*      ENDIF.
-*
-*    ENDLOOP.
-*
-*    IF l_private_data IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_private_data }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PRIVATE CLASS-METHODS
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_private_class_methods ASSIGNING FIELD-SYMBOL(<ls_private_class_method>).
-*
-*      l_method_definition = me->get_method_definition(
-*        EXPORTING
-*          i_interface_name  = l_class_name
-*          i_method_name = CONV #( <ls_private_class_method>->name )
-*      ).
-*
-*      l_private_class_methods = |{ l_private_class_methods }{ cl_abap_char_utilities=>newline }|.
-*
-*      l_private_class_methods = |{ l_private_class_methods }{ l_method_definition }|.
-*
-*    ENDLOOP.
-*
-*    IF l_private_class_methods IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_private_class_methods }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
-*
-*    " PRIVATE METHODS
-*    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-*    LOOP AT lt_private_methods ASSIGNING FIELD-SYMBOL(<ls_private_method>).
-*
-*      l_method_definition = me->get_method_definition(
-*        EXPORTING
-*          i_interface_name  = l_class_name
-*          i_method_name = CONV #( <ls_private_method>->name )
-*      ).
-*
-*      l_private_methods = |{ l_private_methods }{ cl_abap_char_utilities=>newline }|.
-*
-*      l_private_methods = |{ l_private_methods }{ l_method_definition }|.
-*
-*    ENDLOOP.
-*
-*    IF l_private_methods IS NOT INITIAL.
-*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
-*      r_response = |{ r_response }{ l_private_methods }{ cl_abap_char_utilities=>newline }|.
-*    ENDIF.
+      r_response = |{ r_response }{ l_public_types }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
+    " CONSTANTS
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_public_constants ASSIGNING FIELD-SYMBOL(<ls_public_constant>).
+
+      DATA(l_constant) = me->_constant_to_string( <ls_public_constant> ).
+
+      IF l_constant IS NOT INITIAL.
+        l_public_constants = |{ l_public_constants }{ cl_abap_char_utilities=>newline }|.
+        l_public_constants = |{ l_public_constants }CONSTANTS { l_constant }.|.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF l_public_constants IS NOT INITIAL.
+      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_public_constants }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
+    " CLASS-DATA
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_public_class_data ASSIGNING FIELD-SYMBOL(<ls_public_class_data>).
+
+      DATA(l_class_data) = me->_class_data_to_string( <ls_public_class_data> ).
+
+      IF l_class_data IS NOT INITIAL.
+        l_public_class_data = |{ l_public_class_data }{ cl_abap_char_utilities=>newline }|.
+        l_public_class_data = |{ l_public_class_data }CLASS-DATA { l_class_data }.|.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF l_public_class_data IS NOT INITIAL.
+      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_public_class_data }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
+    " DATA
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_public_data ASSIGNING FIELD-SYMBOL(<ls_public_data>).
+
+      DATA(l_data) = me->_data_to_string( <ls_public_data> ).
+
+      IF l_data IS NOT INITIAL.
+        l_public_data = |{ l_public_data }{ cl_abap_char_utilities=>newline }|.
+        l_public_data = |{ l_public_data }DATA { l_data }.|.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF l_public_data IS NOT INITIAL.
+      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_public_data }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
+    " CLASS-METHODS
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_public_class_methods ASSIGNING FIELD-SYMBOL(<ls_public_class_method>).
+
+      DATA(l_method_definition) = me->get_method_definition(
+        EXPORTING
+          i_interface_name  = l_interface_name
+          i_method_name = CONV #( <ls_public_class_method>->name )
+      ).
+
+      l_public_class_methods = |{ l_public_class_methods }{ cl_abap_char_utilities=>newline }|.
+
+      l_public_class_methods = |{ l_public_class_methods }{ l_method_definition }|.
+
+    ENDLOOP.
+
+    IF l_public_class_methods IS NOT INITIAL.
+      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_public_class_methods }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
+    " METHODS
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_public_methods ASSIGNING FIELD-SYMBOL(<ls_public_method>).
+
+      l_method_definition = me->get_method_definition(
+        EXPORTING
+          i_interface_name  = l_interface_name
+          i_method_name = CONV #( <ls_public_method>->name )
+      ).
+
+      l_public_methods = |{ l_public_methods }{ cl_abap_char_utilities=>newline }|.
+
+      l_public_methods = |{ l_public_methods }{ l_method_definition }|.
+
+    ENDLOOP.
+
+    IF l_public_methods IS NOT INITIAL.
+      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_public_methods }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
 
   ENDMETHOD.
 
@@ -1068,99 +922,6 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
     r_response = |{ r_response }{ me->_exceptions_to_string( lo_method->exceptions->all->get( ) ) }|.
 
     r_response = |{ r_response }.|.
-
-  ENDMETHOD.
-
-  METHOD get_translation.
-
-    CLEAR r_response.
-
-    DATA(l_language) = i_language.
-
-    l_language = to_upper( l_language ).
-
-    DATA(lo_language) = xco_cp=>language( l_language ).
-
-    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_interface_name ) ) ).
-
-    DATA(lo_class) = xco_cp_abap=>class( l_class_name ).
-
-    IF lo_class->exists( ) = abap_false.
-      r_response = |The class `{ l_class_name }` does not exist.|.
-      RETURN.
-    ENDIF.
-
-    DATA(lo_text_attribute) = xco_cp_text_pool=>text_attribute->text_element_text.
-
-    TRY.
-
-        DATA(lo_target) = xco_cp_i18n=>target->text_pool->class_text_symbol( iv_class_name = l_class_name
-                                                                             iv_text_symbol_id = CONV #( i_text_symbol_id ) ).
-
-        DATA(lo_translation) = lo_target->get_translation( io_language = lo_language
-                                                           it_text_attributes = VALUE #( ( lo_text_attribute ) ) ).
-
-        LOOP AT lo_translation->texts INTO DATA(lo_text).
-          r_response = lo_text_attribute->if_xco_i18n_text_attribute~get_string_for_text( lo_text->value ).
-        ENDLOOP.
-
-      CATCH cx_xco_runtime_exception ##NO_HANDLER.
-
-        r_response = |The text symbol id `{ i_text_symbol_id }` does not exist in the class `{ l_class_name }`.|.
-
-    ENDTRY.
-
-  ENDMETHOD.
-
-  METHOD set_translation.
-
-    CLEAR r_response.
-
-    DATA(l_language) = i_language.
-
-    l_language = to_upper( l_language ).
-
-    DATA(lo_language) = xco_cp=>language( l_language ).
-
-    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_interface_name ) ) ).
-
-    DATA(lo_class) = xco_cp_abap=>class( l_class_name ).
-
-    IF lo_class->exists( ) = abap_false.
-      r_response = |The class `{ l_class_name }` does not exist.|.
-      RETURN.
-    ENDIF.
-
-    DATA(l_transport_request) = me->_get_transport_request( l_class_name ).
-
-    IF l_transport_request IS INITIAL.
-      l_transport_request = condense( to_upper( i_transport_request ) ).
-    ENDIF.
-
-    DATA(lo_transport_request) = xco_cp_cts=>transport->for( iv_transport = l_transport_request ).
-
-    DATA(lo_text_attribute) = xco_cp_text_pool=>text_attribute->text_element_text.
-
-    DATA(lo_text) = lo_text_attribute->create_text( xco_cp=>string( i_text ) ).
-
-    TRY.
-
-        DATA(lo_target) = xco_cp_i18n=>target->text_pool->class_text_symbol( iv_class_name = l_class_name
-                                                                             iv_text_symbol_id = CONV #( i_text_symbol_id ) ).
-
-        lo_target->set_translation(
-          it_texts           = VALUE #( ( lo_text ) )
-          io_language        = lo_language
-          io_change_scenario = lo_transport_request
-        ).
-
-        r_response = |The translation of text symbol id `{ i_text_symbol_id }` of class `{ l_class_name }` was saved.|.
-
-      CATCH cx_xco_runtime_exception ##NO_HANDLER.
-
-        r_response = |Error! The translation of text symbol id `{ i_text_symbol_id }` of class `{ l_class_name }` was not saved.|.
-
-    ENDTRY.
 
   ENDMETHOD.
 
@@ -1551,6 +1312,18 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD if_oo_adt_classrun~main.
+
+    DATA l_response TYPE string.
+
+    DATA(l_get_class_definition) = abap_true.
+
+    IF l_get_class_definition = abap_true.
+
+      l_response = me->get_interface_definition( i_interface_name  = 'ZIF_CJS_00001' ).
+
+    ENDIF.
+
+    out->write( l_response ).
 
   ENDMETHOD.
 
