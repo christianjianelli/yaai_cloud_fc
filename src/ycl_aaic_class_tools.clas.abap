@@ -178,6 +178,11 @@ CLASS ycl_aaic_class_tools DEFINITION
         e_t_class_methods_private TYPE sxco_t_clas_c_methods
         e_t_methods_private       TYPE sxco_t_clas_c_methods.
 
+    METHODS _type_to_string
+      IMPORTING
+                i_o_type             TYPE REF TO if_xco_ao_c_type
+      RETURNING VALUE(r_type_string) TYPE string.
+
     METHODS _constant_to_string
       IMPORTING
                 i_o_constant             TYPE REF TO if_xco_ao_c_constant
@@ -926,6 +931,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
   METHOD get_class_definition.
 
     DATA: l_interfaces            TYPE string,
+          l_public_types          TYPE string,
+          l_private_types         TYPE string,
           l_public_constants      TYPE string,
           l_private_constants     TYPE string,
           l_public_class_data     TYPE string,
@@ -961,8 +968,6 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
         DATA(lt_public_constants) = lo_class->definition->section-public->components->constant->all->get( ).
 
         DATA(lt_private_constants) = lo_class->definition->section-private->components->constant->all->get( ).
-
-        DATA(lt_aliases) = lo_class->definition->section-public->components->alias->all->get( ).
 
         me->_get_attributes(
           EXPORTING
@@ -1012,6 +1017,24 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       r_response = |{ r_response }{ l_interfaces }|.
     ENDIF.
 
+    " PUBLIC TYPES
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_public_types ASSIGNING FIELD-SYMBOL(<ls_public_type>).
+
+      DATA(l_type) = me->_type_to_string( <ls_public_type> ).
+
+      IF l_type IS NOT INITIAL.
+        l_public_types = |{ l_public_types }{ cl_abap_char_utilities=>newline }|.
+        l_public_types = |{ l_public_types }TYPES: { l_type }.|.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF l_public_types IS NOT INITIAL.
+*      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_public_types }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
     " PUBLIC CONSTANTS
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     LOOP AT lt_public_constants ASSIGNING FIELD-SYMBOL(<ls_public_constant>).
@@ -1020,7 +1043,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       IF l_constant IS NOT INITIAL.
         l_public_constants = |{ l_public_constants }{ cl_abap_char_utilities=>newline }|.
-        l_public_constants = |{ l_public_constants }CONSTANT { l_constant }.|.
+        l_public_constants = |{ l_public_constants }CONSTANTS { l_constant }.|.
       ENDIF.
 
     ENDLOOP.
@@ -1113,6 +1136,44 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
     r_response = |{ r_response }PRIVATE SECTION.{ cl_abap_char_utilities=>newline }|.
 
+
+    " PRIVATE TYPES
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_private_types ASSIGNING FIELD-SYMBOL(<ls_private_type>).
+
+      l_type = me->_type_to_string( <ls_private_type> ).
+
+      IF l_type IS NOT INITIAL.
+        l_private_types = |{ l_private_types }{ cl_abap_char_utilities=>newline }|.
+        l_private_types = |{ l_private_types }TYPES: { l_type }.|.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF l_private_types IS NOT INITIAL.
+      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_private_types }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
+
+    " PRIVATE CONSTANTS
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    LOOP AT lt_private_constants ASSIGNING FIELD-SYMBOL(<ls_private_constant>).
+
+      l_constant = me->_constant_to_string( <ls_private_constant> ).
+
+      IF l_constant IS NOT INITIAL.
+        l_private_constants = |{ l_private_constants }{ cl_abap_char_utilities=>newline }|.
+        l_private_constants = |{ l_private_constants }CONSTANTS { l_constant }.|.
+      ENDIF.
+
+    ENDLOOP.
+
+    IF l_private_constants IS NOT INITIAL.
+      r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }{ l_private_constants }{ cl_abap_char_utilities=>newline }|.
+    ENDIF.
+
     " PRIVATE CLASS-DATA
     """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
     LOOP AT lt_private_class_data ASSIGNING FIELD-SYMBOL(<ls_private_class_data>).
@@ -1126,7 +1187,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDLOOP.
 
-    IF l_public_class_data IS NOT INITIAL.
+    IF l_private_class_data IS NOT INITIAL.
       r_response = |{ r_response }{ cl_abap_char_utilities=>newline }|.
       r_response = |{ r_response }{ l_private_class_data }{ cl_abap_char_utilities=>newline }|.
     ENDIF.
@@ -1159,6 +1220,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
           i_method_name = CONV #( <ls_private_class_method>->name )
       ).
 
+      l_private_class_methods = |{ l_private_class_methods }{ cl_abap_char_utilities=>newline }|.
+
       l_private_class_methods = |{ l_private_class_methods }{ l_method_definition }|.
 
     ENDLOOP.
@@ -1177,6 +1240,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
           i_class_name  = l_class_name
           i_method_name = CONV #( <ls_private_method>->name )
       ).
+
+      l_private_methods = |{ l_private_methods }{ cl_abap_char_utilities=>newline }|.
 
       l_private_methods = |{ l_private_methods }{ l_method_definition }|.
 
@@ -1554,7 +1619,32 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD _type_to_string.
+
+    CLEAR r_type_string.
+
+    DATA(lo_content) = i_o_type->content( ).
+
+    DATA(l_name) = lo_content->type->name.
+
+    DATA(ls_type) = lo_content->get( ).
+
+    DATA(l_type) = ls_type-typing_definition->get_value( ).
+
+    DATA(l_source) = ls_type-typing_definition->get_source( ).
+
+    IF l_source IS NOT INITIAL.
+      r_type_string = l_source.
+      RETURN.
+    ENDIF.
+
+    r_type_string = |{ l_name } TYPE { l_type }|.
+
+  ENDMETHOD.
+
   METHOD _constant_to_string.
+
+    CLEAR r_constant_string.
 
     DATA(lo_content) = i_o_constant->content( ).
 
@@ -1563,6 +1653,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(ls_constant) = lo_content->get( ).
 
     DATA(l_type) = ls_constant-typing_definition->get_value( ).
+
     DATA(l_source) = ls_constant-typing_definition->get_source( ).
 
     DATA(l_type_ref) = ls_constant-typing_method->if_xco_printable~get_text( )->get_lines( )->join( )->value.
@@ -1580,6 +1671,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD _class_data_to_string.
+
+    CLEAR r_attribute_string.
 
     DATA(lo_content) = i_o_class_data->content( ).
 
@@ -1612,16 +1705,19 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   METHOD _data_to_string.
 
+    CLEAR r_attribute_string.
+
     DATA(lo_content) = i_o_data->content( ).
 
     DATA(l_name) = lo_content->data->name.
 
-    DATA(ls_class_data) = lo_content->get( ).
+    DATA(ls_data) = lo_content->get( ).
 
-    DATA(l_type) = ls_class_data-typing_definition->get_value( ).
-    DATA(l_source) = ls_class_data-typing_definition->get_source( ).
+    DATA(l_type) = ls_data-typing_definition->get_value( ).
 
-    DATA(l_type_ref) = ls_class_data-typing_method->if_xco_printable~get_text( )->get_lines( )->join( )->value.
+    DATA(l_source) = ls_data-typing_definition->get_source( ).
+
+    DATA(l_type_ref) = ls_data-typing_method->if_xco_printable~get_text( )->get_lines( )->join( )->value.
 
     IF l_type IS INITIAL.
       REPLACE ALL OCCURRENCES OF cl_abap_char_utilities=>cr_lf IN l_source WITH space.
@@ -1635,7 +1731,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       r_attribute_string = |{ l_name } TYPE { l_type }|.
     ENDIF.
 
-    IF ls_class_data-read_only_indicator = abap_true.
+    IF ls_data-read_only_indicator = abap_true.
       r_attribute_string = |{ r_attribute_string } READ-ONLY|.
     ENDIF.
 
@@ -2046,6 +2142,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     IF l_get_class_definition = abap_true.
 
       l_response = me->get_class_definition( i_class_name  = 'ZCL_CJS_00002' ).
+*      l_response = me->get_class_definition( i_class_name  = 'ycl_aaic_anthropic' ).
 
     ENDIF.
 
