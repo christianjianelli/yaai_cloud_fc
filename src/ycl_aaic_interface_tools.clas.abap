@@ -89,6 +89,13 @@ CLASS ycl_aaic_interface_tools DEFINITION
                 i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
       RETURNING VALUE(r_response)   TYPE string.
 
+    METHODS delete_constant
+      IMPORTING
+                i_interface_name    TYPE yde_aaic_fc_interface_name
+                i_constant_name     TYPE yde_aaic_fc_constant_name
+                i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
+      RETURNING VALUE(r_response)   TYPE string.
+
     METHODS get_interface_definition
       IMPORTING
                 i_interface_name  TYPE yde_aaic_fc_interface_name
@@ -720,6 +727,55 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
         r_response = |Error! Attribute `{ l_attribute_name }` was not deleted from interface `{ l_interface_name }`.|.
+
+        me->_add_findings_to_response(
+          EXPORTING
+            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+          CHANGING
+            ch_response  = r_response
+        ).
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD delete_constant.
+
+    CLEAR r_response.
+
+    DATA(l_interface_name) = CONV sxco_ad_object_name( condense( to_upper( i_interface_name ) ) ).
+
+    DATA(l_constant_name) = CONV sxco_ao_component_name( condense( i_constant_name ) ).
+
+    DATA(lo_interface) = xco_cp_abap=>interface( l_interface_name ).
+
+    IF lo_interface->exists( ) = abap_false.
+      r_response = |The interface `{ l_interface_name }` does not exist.|.
+      RETURN.
+    ENDIF.
+
+    DATA(l_transport_request) = me->_get_transport_request( l_interface_name ).
+
+    IF l_transport_request IS INITIAL.
+      l_transport_request = condense( to_upper( i_transport_request ) ).
+    ENDIF.
+
+    DATA(lo_patch_operation) = xco_cp_generation=>environment->dev_system( l_transport_request
+      )->for-intf->create_patch_operation( ).
+
+    DATA(lo_patch_operation_object) = lo_patch_operation->add_object( l_interface_name ).
+
+    lo_patch_operation_object->for-delete->add_constant( l_constant_name ).
+
+    TRY.
+
+        lo_patch_operation->execute( ).
+
+        r_response = |Constant `{ l_constant_name }` deleted from interface `{ l_interface_name }`.|.
+
+      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+
+        r_response = |Error! Constant `{ l_constant_name }` was not deleted from interface `{ l_interface_name }`.|.
 
         me->_add_findings_to_response(
           EXPORTING
@@ -1380,7 +1436,8 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
     DATA(l_add_class_method) = abap_false.
     DATA(l_delete) = abap_false.
     DATA(l_add_attribute) = abap_false.
-    DATA(l_add_constant) = abap_true.
+    DATA(l_add_constant) = abap_false.
+    DATA(l_delete_constant) = abap_true.
     DATA(l_delete_attribute) = abap_false.
     DATA(l_add_method_parameters) = abap_false.
     DATA(l_delete_method_parameters) = abap_false.
@@ -1486,6 +1543,16 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
       l_response = me->delete_attribute(
                      i_interface_name    = 'ZIF_CJS_00002'
                      i_attribute_name    = 'ATTR2'
+                     i_transport_request = 'TRLK900008'
+                   ).
+
+    ENDIF.
+
+    IF l_delete_constant = abap_true.
+
+      l_response = me->delete_constant(
+                     i_interface_name    = 'ZIF_CJS_00002'
+                     i_constant_name     = 'MC1'
                      i_transport_request = 'TRLK900008'
                    ).
 
