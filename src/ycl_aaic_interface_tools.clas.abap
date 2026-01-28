@@ -73,6 +73,15 @@ CLASS ycl_aaic_interface_tools DEFINITION
                 i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
       RETURNING VALUE(r_response)   TYPE string.
 
+    METHODS add_constant
+      IMPORTING
+                i_interface_name    TYPE yde_aaic_fc_interface_name
+                i_constant_name     TYPE yde_aaic_fc_constant_name
+                i_constant_type     TYPE yde_aaic_fc_constant_type
+                i_constant_value    TYPE yde_aaic_fc_constant_value
+                i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
+      RETURNING VALUE(r_response)   TYPE string.
+
     METHODS delete_attribute
       IMPORTING
                 i_interface_name    TYPE yde_aaic_fc_interface_name
@@ -601,6 +610,57 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
       CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
         r_response = |Error! Attribute `{ l_attribute_name }` was not added to interface `{ l_interface_name }`.|.
+
+        me->_add_findings_to_response(
+          EXPORTING
+            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+          CHANGING
+            ch_response  = r_response
+        ).
+
+    ENDTRY.
+
+  ENDMETHOD.
+
+  METHOD add_constant.
+
+    CLEAR r_response.
+
+    DATA(l_interface_name) = CONV sxco_ad_object_name( condense( to_upper( i_interface_name ) ) ).
+
+    DATA(l_constant_name) = CONV sxco_ao_component_name( condense( i_constant_name ) ).
+
+    DATA(lo_interface) = xco_cp_abap=>interface( l_interface_name ).
+
+    IF lo_interface->exists( ) = abap_false.
+      r_response = |The interface `{ l_interface_name }` does not exist.|.
+      RETURN.
+    ENDIF.
+
+    DATA(l_transport_request) = me->_get_transport_request( l_interface_name ).
+
+    IF l_transport_request IS INITIAL.
+      l_transport_request = condense( to_upper( i_transport_request ) ).
+    ENDIF.
+
+    DATA(lo_patch_operation) = xco_cp_generation=>environment->dev_system( l_transport_request
+      )->for-intf->create_patch_operation( ).
+
+    DATA(lo_patch_operation_object) = lo_patch_operation->add_object( l_interface_name ).
+
+    DATA(lo_data) = lo_patch_operation_object->for-insert->add_constant( l_constant_name
+      )->set_type( xco_cp_abap=>type-source->for( CONV #( i_constant_type ) )
+      )->set_string_value( i_constant_value ).
+
+    TRY.
+
+        lo_patch_operation->execute( ).
+
+        r_response = |Constant `{ l_constant_name }` added to interface `{ l_interface_name }`.|.
+
+      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+
+        r_response = |Error! Constant `{ l_constant_name }` was not added to interface `{ l_interface_name }`.|.
 
         me->_add_findings_to_response(
           EXPORTING
@@ -1315,11 +1375,158 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     DATA l_response TYPE string.
 
-    DATA(l_get_class_definition) = abap_true.
+    DATA(l_create) = abap_false.
+    DATA(l_add_method) = abap_false.
+    DATA(l_add_class_method) = abap_false.
+    DATA(l_delete) = abap_false.
+    DATA(l_add_attribute) = abap_false.
+    DATA(l_add_constant) = abap_true.
+    DATA(l_delete_attribute) = abap_false.
+    DATA(l_add_method_parameters) = abap_false.
+    DATA(l_delete_method_parameters) = abap_false.
+    DATA(l_get_method_definition) = abap_false.
+    DATA(l_get_class_definition) = abap_false.
+
+    IF l_create = abap_true.
+
+      l_response = me->create(
+        EXPORTING
+          i_interface_name    = 'ZIF_CJS_00002'
+          i_description       = 'XCO ABAP interface generation'
+          i_transport_request = 'TRLK900008'
+          i_package           = 'ZCHRJS'
+      ).
+
+    ENDIF.
+
+    IF l_add_method = abap_true.
+
+      l_response = me->add_method(
+        EXPORTING
+          i_interface_name    = 'ZIF_CJS_00002'
+          i_method_name        = 'M1'
+          i_description        = 'Method M1'
+          i_transport_request  = 'TRLK900008'
+          i_source             = |IF 1 = 2. { cl_abap_char_utilities=>newline } ENDIF.|
+          i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )
+                                          ( name = 'P2' type = 'STRING' )
+                                          ( name = 'P3' type = 'REF TO YIF_AAIC_DB OPTIONAL' ) )
+          i_t_exporting_params = VALUE #( ( name = 'E_API' type = |YDE_AAIC_API| )
+                                          ( name = 'E_STR' type = 'STRING' )
+                                          ( name = 'E_CHAT' type = 'REF TO YIF_AAIC_CHAT' ) )
+          i_t_changing_params  = VALUE #( ( name = 'CH_API' type = |YDE_AAIC_API| )
+                                          ( name = 'CH_STR' type = 'STRING' )
+                                          ( name = 'CH_CHAT' type = 'REF TO YIF_AAIC_CHAT' ) )
+          i_s_returning_param = VALUE #( name = 'r_api' type = |YDE_AAIC_API| )
+          i_t_exceptions = VALUE #( ( name = 'CX_XCO_GEN_PATCH_EXCEPTION' ) )
+        ).
+
+    ENDIF.
+
+    IF l_add_class_method = abap_true.
+
+      l_response = me->add_method(
+        EXPORTING
+          i_interface_name    = 'ZIF_CJS_00002'
+          i_method_name       = 'CM1'
+          i_static            = abap_true
+          i_description       = 'Chat'
+          i_transport_request = 'TRLK900008'
+          i_source            = |IF 1 = 2.{ cl_abap_char_utilities=>newline }  "Class Method{ cl_abap_char_utilities=>newline }ENDIF.|
+          i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )
+                                          ( name = 'P2' type = 'STRING' )
+                                          ( name = 'P3' type = 'REF TO YIF_AAIC_DB OPTIONAL' ) )
+        ).
+
+    ENDIF.
+
+    IF l_delete = abap_true.
+
+      l_response = me->delete_method(
+        EXPORTING
+          i_interface_name    = 'ZIF_CJS_00002'
+          i_method_name       = 'M2'
+          i_transport_request = 'TRLK900008'
+      ).
+
+    ENDIF.
+
+    IF l_add_attribute = abap_true.
+
+      l_response = me->add_attribute(
+                     i_interface_name    = 'ZIF_CJS_00002'
+                     i_attribute_name    = 'ATTR1'
+                     i_attribute_type    = 'yde_aaic_chat_id'
+                     i_transport_request = 'TRLK900008'
+                   ).
+
+*      l_response = me->add_attribute(
+*                     i_interface_name    = 'ZIF_CJS_00002'
+*                     i_attribute_name    = 'ATTR2'
+*                     i_attribute_type    = 'REF TO yif_aaic_chat'
+*                     i_transport_request = 'TRLK900008'
+*                   ).
+
+    ENDIF.
+
+    IF l_add_constant = abap_true.
+
+      l_response = me->add_constant(
+                     i_interface_name    = 'ZIF_CJS_00002'
+                     i_constant_name     = 'MC1'
+                     i_constant_type     = 'YDE_AAIC_API'
+                     i_constant_value    = 'GOOGLE'
+                     i_transport_request = 'TRLK900008'
+                   ).
+
+    ENDIF.
+
+    IF l_delete_attribute = abap_true.
+
+      l_response = me->delete_attribute(
+                     i_interface_name    = 'ZIF_CJS_00002'
+                     i_attribute_name    = 'ATTR2'
+                     i_transport_request = 'TRLK900008'
+                   ).
+
+    ENDIF.
+
+    IF l_add_method_parameters = abap_true.
+
+      l_response = me->add_method_parameters(
+        EXPORTING
+          i_interface_name    = 'ZIF_CJS_00002'
+          i_method_name       = 'CM1'
+          i_transport_request = 'TRLK900008'
+          i_t_importing_params = VALUE #( ( name = 'P4' type = |abap_boolean| ) )
+      ).
+
+    ENDIF.
+
+    IF l_delete_method_parameters = abap_true.
+
+      l_response = me->delete_method_parameters(
+        EXPORTING
+          i_interface_name    = 'ZIF_CJS_00002'
+          i_method_name       = 'M2'
+          i_transport_request = 'TRLK900008'
+          i_t_importing_params = VALUE #( ( name = 'P3' ) )
+      ).
+
+    ENDIF.
+
+    IF l_get_method_definition = abap_true.
+
+      l_response = me->get_method_definition(
+                      i_interface_name  = 'ZIF_CJS_00002'
+                      i_method_name    = 'M1'
+                   ).
+
+    ENDIF.
 
     IF l_get_class_definition = abap_true.
 
-      l_response = me->get_interface_definition( i_interface_name  = 'ZIF_CJS_00001' ).
+      l_response = me->get_interface_definition( i_interface_name  = 'ZIF_CJS_00002' ).
 
     ENDIF.
 

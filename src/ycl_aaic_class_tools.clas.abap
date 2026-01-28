@@ -85,6 +85,16 @@ CLASS ycl_aaic_class_tools DEFINITION
                 i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
       RETURNING VALUE(r_response)   TYPE string.
 
+    METHODS add_constant
+      IMPORTING
+                i_class_name        TYPE yde_aaic_class_name
+                i_constant_name     TYPE yde_aaic_fc_constant_name
+                i_constant_type     TYPE yde_aaic_fc_constant_type
+                i_constant_value    TYPE yde_aaic_fc_constant_value
+                i_class_section     TYPE yde_aaic_fc_clas_section DEFAULT mc_public
+                i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
+      RETURNING VALUE(r_response)   TYPE string.
+
     METHODS delete_attribute
       IMPORTING
                 i_class_name        TYPE yde_aaic_class_name
@@ -846,6 +856,58 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD add_constant.
+
+    CLEAR r_response.
+
+    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
+
+    DATA(l_constant_name) = CONV sxco_ao_component_name( condense( i_constant_name ) ).
+
+    DATA(l_section) = CONV sxco_clas_method_name( to_upper( condense( i_class_section ) ) ).
+
+    IF xco_cp_abap=>class( l_class_name )->exists( ) = abap_false.
+      r_response = |The class `{ l_class_name }` does not exist.|.
+      RETURN.
+    ENDIF.
+
+    DATA(l_transport_request) = me->_get_transport_request( l_class_name ).
+
+    IF l_transport_request IS INITIAL.
+      l_transport_request = condense( to_upper( i_transport_request ) ).
+    ENDIF.
+
+
+    DATA(lo_patch_operation) = xco_cp_generation=>environment->dev_system( l_transport_request
+      )->for-clas->create_patch_operation( ).
+
+    DATA(lo_patch_operation_object) = lo_patch_operation->add_object( l_class_name ).
+
+    DATA(lo_data) = lo_patch_operation_object->for-insert->definition->section-public->add_constant( l_constant_name
+      )->set_type( xco_cp_abap=>type-source->for( CONV #( i_constant_type ) )
+      )->set_string_value( i_constant_value ).
+
+    TRY.
+
+        lo_patch_operation->execute( ).
+
+        r_response = |Constant `{ l_constant_name }` added to class `{ l_class_name }`.|.
+
+      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+
+        r_response = |Error! Constant `{ l_constant_name }` was not added to class `{ l_class_name }`.|.
+
+        me->_add_findings_to_response(
+          EXPORTING
+            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+          CHANGING
+            ch_response  = r_response
+        ).
+
+    ENDTRY.
+
+  ENDMETHOD.
+
   METHOD delete_attribute.
 
     CLEAR r_response.
@@ -864,7 +926,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     me->_get_attribute_section(
       EXPORTING
         i_class_name     = l_class_name
-        i_attribute_name = CONV #( l_attribute_name )
+        i_attribute_name = l_attribute_name
       IMPORTING
         e_section        = DATA(l_section)
         e_static         = DATA(l_static)
@@ -1944,6 +2006,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(l_add_class_method) = abap_false.
     DATA(l_delete) = abap_false.
     DATA(l_add_attribute) = abap_false.
+    DATA(l_add_constant) = abap_true.
     DATA(l_delete_attribute) = abap_false.
     DATA(l_change_method_implementation) = abap_false.
     DATA(l_add_method_parameters) = abap_false.
@@ -1953,7 +2016,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(l_set_translation) = abap_false.
     DATA(l_get_method_definition) = abap_false.
     DATA(l_get_method_implementation) = abap_false.
-    DATA(l_get_class_definition) = abap_true.
+    DATA(l_get_class_definition) = abap_false.
 
     IF l_create = abap_true.
 
@@ -2027,6 +2090,19 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
                      i_attribute_name    = 'ATTR2'
                      i_attribute_type    = 'REF TO yif_aaic_chat'
 *                     i_class_section     = 'PUBLIC'
+                     i_transport_request = 'TRLK900008'
+                   ).
+
+    ENDIF.
+
+    IF l_add_constant = abap_true.
+
+      l_response = me->add_constant(
+                     i_class_name       = 'ZCL_CJS_00001'
+                     i_constant_name    = 'MC1'
+                     i_constant_type    = 'string'
+                     i_constant_value   = 'XPTO'
+*                     i_class_section    = 'PUBLIC'
                      i_transport_request = 'TRLK900008'
                    ).
 
