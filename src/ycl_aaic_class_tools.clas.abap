@@ -24,16 +24,15 @@ CLASS ycl_aaic_class_tools DEFINITION
       IMPORTING
                 i_class_name         TYPE yde_aaic_class_name
                 i_method_name        TYPE yde_aaic_method_name
-                i_description        TYPE yde_aaic_fc_description
                 i_class_section      TYPE yde_aaic_fc_clas_section DEFAULT mc_public
                 i_static             TYPE yde_aaic_fc_static_method DEFAULT abap_false
-                i_source             TYPE string
-                i_transport_request  TYPE yde_aaic_fc_transport_request OPTIONAL
                 i_s_returning_param  TYPE yst_aaic_fc_method_return_par OPTIONAL
                 i_t_importing_params TYPE ytt_aaic_fc_method_imp_par OPTIONAL
                 i_t_exporting_params TYPE ytt_aaic_fc_method_exp_par OPTIONAL
                 i_t_changing_params  TYPE ytt_aaic_fc_method_chang_par OPTIONAL
                 i_t_exceptions       TYPE ytt_aaic_fc_method_exceptions OPTIONAL
+                i_source             TYPE yde_aaic_method_source_code
+                i_transport_request  TYPE yde_aaic_fc_transport_request OPTIONAL
       RETURNING VALUE(r_response)    TYPE string.
 
     METHODS change_method_implementation
@@ -41,7 +40,7 @@ CLASS ycl_aaic_class_tools DEFINITION
                 i_class_name        TYPE yde_aaic_class_name
                 i_method_name       TYPE yde_aaic_method_name
                 i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
-                i_source            TYPE string
+                i_source            TYPE yde_aaic_method_source_code
       RETURNING VALUE(r_response)   TYPE string.
 
     METHODS add_method_parameters
@@ -109,6 +108,11 @@ CLASS ycl_aaic_class_tools DEFINITION
                 i_transport_request TYPE yde_aaic_fc_transport_request OPTIONAL
       RETURNING VALUE(r_response)   TYPE string.
 
+    METHODS check_syntax
+      IMPORTING
+                i_class_name      TYPE yde_aaic_class_name
+      RETURNING VALUE(r_response) TYPE string.
+
     METHODS get_class_definition
       IMPORTING
                 i_class_name      TYPE yde_aaic_class_name
@@ -145,6 +149,11 @@ CLASS ycl_aaic_class_tools DEFINITION
   PROTECTED SECTION.
 
   PRIVATE SECTION.
+
+    METHODS _is_locked
+      IMPORTING
+                i_o_findings       TYPE REF TO if_xco_gen_o_f_section
+      RETURNING VALUE(r_is_locked) TYPE abap_bool.
 
     METHODS _add_findings_to_response
       IMPORTING
@@ -267,12 +276,12 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     lo_specification->definition->set_create_visibility( xco_cp_abap_objects=>visibility->public ).
 
-    IF i_interface_name IS SUPPLIED.
+    IF i_interface_name IS SUPPLIED AND i_interface_name IS NOT INITIAL.
       DATA(l_interface_name) = CONV sxco_ad_object_name( condense( to_upper( i_interface_name ) ) ).
       lo_specification->definition->add_interface( l_interface_name ).
     ENDIF.
 
-    IF i_superclass_name IS SUPPLIED.
+    IF i_superclass_name IS SUPPLIED AND i_superclass_name IS NOT INITIAL.
       DATA(l_superclass_name) = CONV sxco_ad_object_name( condense( to_upper( i_superclass_name ) ) ).
       lo_specification->definition->set_superclass( l_superclass_name ).
     ENDIF.
@@ -330,13 +339,11 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       IF i_static = abap_false.
 
-        DATA(lo_method_definition) = lo_patch_operation_object->for-insert->definition->section-private->add_method( l_method_name
-          )->set_short_description( i_description ).
+        DATA(lo_method_definition) = lo_patch_operation_object->for-insert->definition->section-private->add_method( l_method_name ).
 
       ELSE.
 
-        lo_method_definition = lo_patch_operation_object->for-insert->definition->section-private->add_class_method( CONV #( l_method_name )
-          )->set_short_description( i_description ).
+        lo_method_definition = lo_patch_operation_object->for-insert->definition->section-private->add_class_method( CONV #( l_method_name ) ).
 
       ENDIF.
 
@@ -344,13 +351,11 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
       IF i_static = abap_false.
 
-        lo_method_definition = lo_patch_operation_object->for-insert->definition->section-public->add_method( l_method_name
-          )->set_short_description( i_description ).
+        lo_method_definition = lo_patch_operation_object->for-insert->definition->section-public->add_method( l_method_name ).
 
       ELSE.
 
-        lo_method_definition = lo_patch_operation_object->for-insert->definition->section-public->add_class_method( CONV #( l_method_name )
-          )->set_short_description( i_description ).
+        lo_method_definition = lo_patch_operation_object->for-insert->definition->section-public->add_class_method( CONV #( l_method_name ) ).
 
       ENDIF.
 
@@ -398,24 +403,36 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(lo_method_implementation) = lo_patch_operation_object->for-insert->implementation->add_method( l_method_name
       )->set_source( lt_source ).
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Method `{ l_method_name }` added to class `{ l_class_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Method `{ l_method_name }` added to class `{ l_class_name }`.|.
 
-        r_response = |Error! Method `{ l_method_name }` was not added to class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Method `{ l_method_name }` was not added to class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -449,24 +466,36 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(lo_method_implementation) = lo_patch_operation_object->for-insert->implementation->add_method( l_method_name
       )->set_source( lt_source ).
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Source code of method `{ l_method_name }` in class `{ l_class_name }` was changed successfully.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Source code of method `{ l_method_name }` in class `{ l_class_name }` was changed successfully.|.
 
-        r_response = |Error! Source code of method `{ l_method_name }` in class `{ l_class_name }` was not changed.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Source code of method `{ l_method_name }` in class `{ l_class_name }` was not changed.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -560,24 +589,36 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Parameter(s) added to method `{ l_method_name }` of class `{ l_class_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Parameter(s) added to method `{ l_method_name }` of class `{ l_class_name }`.|.
 
-        r_response = |Error! Parameter(s) not added to method `{ l_method_name }` of class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Parameter(s) not added to method `{ l_method_name }` of class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -663,24 +704,36 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Parameter(s) delete from method `{ l_method_name }` of class `{ l_class_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Parameter(s) delete from method `{ l_method_name }` of class `{ l_class_name }`.|.
 
-        r_response = |Error! Parameter(s) not deleted from method `{ l_method_name }` of class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Parameter(s) not deleted from method `{ l_method_name }` of class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -742,28 +795,40 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        DATA(lo_result) = lo_patch_operation->execute( ).
+      TRY.
 
-        IF lo_result->findings->contain_errors( ).
-          r_response = |Method not deleted|.
-        ELSE.
-          r_response = |Method was deleted|.
-        ENDIF.
+          DATA(lo_result) = lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          IF lo_result->findings->contain_errors( ).
+            r_response = |Method not deleted from class `{ l_class_name }`.|.
+          ELSE.
+            r_response = |Method was deleted from class `{ l_class_name }`.|.
+          ENDIF.
 
-        r_response = |Error! Method `{ l_method_name }` was not deleted from class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Method `{ l_method_name }` was not deleted from class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -842,24 +907,36 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Attribute `{ l_attribute_name }` added to class `{ l_class_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Attribute `{ l_attribute_name }` added to class `{ l_class_name }`.|.
 
-        r_response = |Error! Attribute `{ l_attribute_name }` was not added to class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Attribute `{ l_attribute_name }` was not added to class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -894,24 +971,36 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       )->set_type( xco_cp_abap=>type-source->for( CONV #( i_constant_type ) )
       )->set_string_value( i_constant_value ).
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Constant `{ l_constant_name }` added to class `{ l_class_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Constant `{ l_constant_name }` added to class `{ l_class_name }`.|.
 
-        r_response = |Error! Constant `{ l_constant_name }` was not added to class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Constant `{ l_constant_name }` was not added to class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -976,24 +1065,36 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Attribute `{ l_attribute_name }` deleted from class `{ l_class_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Attribute `{ l_attribute_name }` deleted from class `{ l_class_name }`.|.
 
-        r_response = |Error! Attribute `{ l_attribute_name }` was not deleted from class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Attribute `{ l_attribute_name }` was not deleted from class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -1037,24 +1138,79 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Constant `{ l_constant_name }` deleted from class `{ l_class_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Constant `{ l_constant_name }` deleted from class `{ l_class_name }`.|.
 
-        r_response = |Error! Constant `{ l_constant_name }` was not deleted from class `{ l_class_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Constant `{ l_constant_name }` was not deleted from class `{ l_class_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->clas
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->clas ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
+
+  ENDMETHOD.
+
+  METHOD check_syntax.
+
+    CLEAR r_response.
+
+    DATA(l_class_name) = CONV sxco_ad_object_name( condense( to_upper( i_class_name ) ) ).
+
+    DATA(lo_class) = xco_cp_abap=>class( l_class_name ).
+
+    IF lo_class->exists( ) = abap_false.
+      r_response = |The class `{ l_class_name }` does not exist.|.
+      RETURN.
+    ENDIF.
+
+    DATA(lt_messages) = lo_class->check_syntax( )->if_xco_news~get_messages( ).
+
+    IF lt_messages IS INITIAL.
+      r_response = |The class `{ l_class_name }` contains no errors.|.
+    ENDIF.
+
+    LOOP AT lt_messages ASSIGNING FIELD-SYMBOL(<ls_message>).
+
+      IF r_response IS NOT INITIAL.
+        r_response = r_response && cl_abap_char_utilities=>newline.
+      ENDIF.
+
+      CASE <ls_message>->value-msgty.
+
+        WHEN 'E'.
+
+          r_response = |{ r_response }Error! |.
+
+        WHEN 'W'.
+
+          r_response = |{ r_response }Warning! |.
+
+      ENDCASE.
+
+      r_response = r_response && <ls_message>->get_text( ).
+
+    ENDLOOP.
 
   ENDMETHOD.
 
@@ -1611,11 +1767,34 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
   ENDMETHOD.
 
+  METHOD _is_locked.
+
+    DATA(lt_findings) = i_o_findings->get( ).
+
+    LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+      IF <ls_finding>->message->value-msgid = 'EU' AND
+         <ls_finding>->message->value-msgno = '510'.
+
+        r_is_locked = abap_true.
+
+        WAIT UP TO 1 SECONDS.
+
+        EXIT.
+
+      ENDIF.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
   METHOD _add_findings_to_response.
 
     DATA(lt_findings) = i_o_findings->get( ).
 
     LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+*      IF <ls_finding>->message->value-msgid.
 
       IF ch_response IS NOT INITIAL.
         ch_response = ch_response && cl_abap_char_utilities=>newline.
@@ -2076,7 +2255,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(l_add_attribute) = abap_false.
     DATA(l_add_constant) = abap_false.
     DATA(l_delete_attribute) = abap_false.
-    DATA(l_delete_constant) = abap_true.
+    DATA(l_delete_constant) = abap_false.
     DATA(l_change_method_implementation) = abap_false.
     DATA(l_add_method_parameters) = abap_false.
     DATA(l_delete_method_parameters) = abap_false.
@@ -2086,6 +2265,7 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
     DATA(l_get_method_definition) = abap_false.
     DATA(l_get_method_implementation) = abap_false.
     DATA(l_get_class_definition) = abap_false.
+    DATA(l_check_syntax) = abap_true.
 
     IF l_create = abap_true.
 
@@ -2100,13 +2280,21 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
 
     ENDIF.
 
+    IF l_check_syntax = abap_true.
+
+      l_response = me->check_syntax(
+        EXPORTING
+          i_class_name = 'ZCL_CJS_00003'
+      ).
+
+    ENDIF.
+
     IF l_add_method = abap_true.
 
       l_response = me->add_method(
         EXPORTING
           i_class_name         = 'ZCL_CJS_00001'
           i_method_name        = 'M1'
-          i_description        = 'Method M1'
           i_transport_request  = 'TRLK900008'
           i_source             = |IF 1 = 2. { cl_abap_char_utilities=>newline } ENDIF.|
           i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )
@@ -2129,9 +2317,8 @@ CLASS ycl_aaic_class_tools IMPLEMENTATION.
       l_response = me->add_method(
         EXPORTING
           i_class_name        = 'ZCL_CJS_00001'
-          i_method_name       = 'CM1'
+          i_method_name       = 'CM3'
           i_static            = abap_true
-          i_description       = 'Chat'
           i_transport_request = 'TRLK900008'
           i_source            = |IF 1 = 2.{ cl_abap_char_utilities=>newline }  "Class Method{ cl_abap_char_utilities=>newline }ENDIF.|
           i_t_importing_params = VALUE #( ( name = 'P1' type = |YDE_AAIC_API DEFAULT 'OPENAI'| )

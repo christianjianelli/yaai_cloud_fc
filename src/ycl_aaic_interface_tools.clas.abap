@@ -116,6 +116,11 @@ CLASS ycl_aaic_interface_tools DEFINITION
                 i_o_findings TYPE REF TO if_xco_gen_o_f_section
       CHANGING  ch_response  TYPE csequence.
 
+    METHODS _is_locked
+      IMPORTING
+                i_o_findings       TYPE REF TO if_xco_gen_o_f_section
+      RETURNING VALUE(r_is_locked) TYPE abap_bool.
+
     METHODS _get_transport_request
       IMPORTING
                 i_interface_name           TYPE yde_aaic_class_name
@@ -303,24 +308,36 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     ENDLOOP.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Method `{ l_method_name }` added to interface `{ l_interface_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Method `{ l_method_name }` added to interface `{ l_interface_name }`.|.
 
-        r_response = |Error! Method `{ l_method_name }` was not added to interface `{ l_interface_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Method `{ l_method_name }` was not added to interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -392,24 +409,36 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Parameter(s) added to method `{ l_method_name }` of interface `{ l_interface_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Parameter(s) added to method `{ l_method_name }` of interface `{ l_interface_name }`.|.
 
-        r_response = |Error! Parameter(s) not added to method `{ l_method_name }` of interface `{ l_interface_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Parameter(s) not added to method `{ l_method_name }` of interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -476,24 +505,36 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Parameter(s) delete from method `{ l_method_name }` of interface `{ l_interface_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Parameter(s) delete from method `{ l_method_name }` of interface `{ l_interface_name }`.|.
 
-        r_response = |Error! Parameter(s) not deleted from method `{ l_method_name }` of interface `{ l_interface_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Parameter(s) not deleted from method `{ l_method_name }` of interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -534,28 +575,40 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        DATA(lo_result) = lo_patch_operation->execute( ).
+      TRY.
 
-        IF lo_result->findings->contain_errors( ).
-          r_response = |Method not deleted|.
-        ELSE.
-          r_response = |Method was deleted|.
-        ENDIF.
+          DATA(lo_result) = lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          IF lo_result->findings->contain_errors( ).
+            r_response = |Method not deleted from interface `{ l_interface_name }`.|.
+          ELSE.
+            r_response = |Method was deleted from interface `{ l_interface_name }`.|.
+          ENDIF.
 
-        r_response = |Error! Method `{ l_method_name }` was not deleted from interface `{ l_interface_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Method `{ l_method_name }` was not deleted from interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -608,24 +661,36 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Attribute `{ l_attribute_name }` added to interface `{ l_interface_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Attribute `{ l_attribute_name }` added to interface `{ l_interface_name }`.|.
 
-        r_response = |Error! Attribute `{ l_attribute_name }` was not added to interface `{ l_interface_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Attribute `{ l_attribute_name }` was not added to interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -659,24 +724,37 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
       )->set_type( xco_cp_abap=>type-source->for( CONV #( i_constant_type ) )
       )->set_string_value( i_constant_value ).
 
-    TRY.
 
-        lo_patch_operation->execute( ).
+    DO 10 TIMES.
 
-        r_response = |Constant `{ l_constant_name }` added to interface `{ l_interface_name }`.|.
+      TRY.
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          lo_patch_operation->execute( ).
 
-        r_response = |Error! Constant `{ l_constant_name }` was not added to interface `{ l_interface_name }`.|.
+          r_response = |Constant `{ l_constant_name }` added to interface `{ l_interface_name }`.|.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+          EXIT.
 
-    ENDTRY.
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+
+          r_response = |Error! Constant `{ l_constant_name }` was not added to interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -718,24 +796,36 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Attribute `{ l_attribute_name }` deleted from interface `{ l_interface_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Attribute `{ l_attribute_name }` deleted from interface `{ l_interface_name }`.|.
 
-        r_response = |Error! Attribute `{ l_attribute_name }` was not deleted from interface `{ l_interface_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Attribute `{ l_attribute_name }` was not deleted from interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -767,24 +857,36 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
 
     lo_patch_operation_object->for-delete->add_constant( l_constant_name ).
 
-    TRY.
+    DO 10 TIMES.
 
-        lo_patch_operation->execute( ).
+      TRY.
 
-        r_response = |Constant `{ l_constant_name }` deleted from interface `{ l_interface_name }`.|.
+          lo_patch_operation->execute( ).
 
-      CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
+          r_response = |Constant `{ l_constant_name }` deleted from interface `{ l_interface_name }`.|.
 
-        r_response = |Error! Constant `{ l_constant_name }` was not deleted from interface `{ l_interface_name }`.|.
+          EXIT.
 
-        me->_add_findings_to_response(
-          EXPORTING
-            i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
-          CHANGING
-            ch_response  = r_response
-        ).
+        CATCH cx_xco_gen_patch_exception INTO DATA(lo_cx_xco_gen_patch_exception).
 
-    ENDTRY.
+          r_response = |Error! Constant `{ l_constant_name }` was not deleted from interface `{ l_interface_name }`.|.
+
+          me->_add_findings_to_response(
+            EXPORTING
+              i_o_findings = lo_cx_xco_gen_patch_exception->findings->for->intf
+            CHANGING
+              ch_response  = r_response
+          ).
+
+          IF me->_is_locked( lo_cx_xco_gen_patch_exception->findings->for->intf ) = abap_true.
+            CONTINUE.
+          ENDIF.
+
+          EXIT.
+
+      ENDTRY.
+
+    ENDDO.
 
   ENDMETHOD.
 
@@ -1056,6 +1158,27 @@ CLASS ycl_aaic_interface_tools IMPLEMENTATION.
         ch_response = ch_response && <lo_message>->get_text( ).
 
       ENDLOOP.
+
+    ENDLOOP.
+
+  ENDMETHOD.
+
+  METHOD _is_locked.
+
+    DATA(lt_findings) = i_o_findings->get( ).
+
+    LOOP AT lt_findings ASSIGNING FIELD-SYMBOL(<ls_finding>).
+
+      IF <ls_finding>->message->value-msgid = 'EU' AND
+         <ls_finding>->message->value-msgno = '510'.
+
+        r_is_locked = abap_true.
+
+        WAIT UP TO 1 SECONDS.
+
+        EXIT.
+
+      ENDIF.
 
     ENDLOOP.
 
