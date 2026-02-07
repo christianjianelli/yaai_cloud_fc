@@ -1,11 +1,11 @@
 # yaai_cloud_fc
-yaaic - ABAP AI tools Cloud - Function Calling Library
+yaai_cloud_fc - ABAP AI Tools Cloud - Function Calling Library
 
 ## Purpose
 
-This library provides tools designed to be use by AI Agents created with [ABAP AI tools Cloud](https://github.com/christianjianelli/yaai_cloud).
+This library provides tools designed to be used by AI agents created with [ABAP AI Tools Cloud](https://github.com/christianjianelli/yaai_cloud).
 
-ABAP developers use ABAP AI tools Cloud to create custom AI Agents. These agents can be granted access to the tools available in this library, allowing them to perform actions and manage ABAP objects in the ABAP cloud system.
+ABAP developers use ABAP AI Tools Cloud to create custom AI agents. These agents can be granted access to the tools in this library, allowing them to perform actions and manage ABAP objects in the cloud system.
 
 ## Tool Overview
 
