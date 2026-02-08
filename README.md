@@ -1,11 +1,11 @@
 # yaai_cloud_fc
-yaai_cloud_fc - ABAP AI Tools Cloud - Function Calling Library
+yaai_cloud_fc - ABAP AI tools Cloud - Function Calling Library
 
 ## Purpose
 
-This library provides tools designed to be used by AI agents created with [ABAP AI Tools Cloud](https://github.com/christianjianelli/yaai_cloud).
+This library provides tools designed to be used by AI agents created with [ABAP AI tools Cloud](https://github.com/christianjianelli/yaai_cloud).
 
-ABAP developers use ABAP AI Tools Cloud to create custom AI agents. These agents can be granted access to the tools in this library, allowing them to perform actions and manage ABAP objects in the cloud system.
+ABAP developers use ABAP AI tools Cloud to create custom AI agents. These agents can be granted access to the tools in this library, allowing them to perform actions and manage ABAP objects in the cloud system.
 
 ## Tool Overview
 
@@ -22,9 +22,11 @@ The tools are organized by ABAP object type. Each tool exposes operations that a
 - **DDIC Table Type Tools**: Create, update, delete, read, and search table types.
 - **Message Class Tools**: Create, update, delete, read, and translate.
 
-## Documentation
+### Documentation
 
-See the `docs/` folder for detailed guides on each tool:
+The `docs/` folder contains markdown documents created to instruct AI agents on how to use the tools and to provide them with an overview of the tools.
+
+See the `docs/` folder for an overview of the tools:
 - [abap-class-tools.md](docs/abap-class-tools.md)
 - [abap-interface-tools.md](docs/abap-interface-tools.md)
 - [ddic-domain-tools.md](docs/ddic-domain-tools.md)
@@ -34,7 +36,7 @@ See the `docs/` folder for detailed guides on each tool:
 - [ddic-table-type-tools.md](docs/ddic-table-type-tools.md)
 - [abap-message-class-tools.md](docs/abap-message-class-tools.md)
 
-## Source Code
+### Source Code
 
 ABAP source code for each tool is located in the `src/` folder.
 
