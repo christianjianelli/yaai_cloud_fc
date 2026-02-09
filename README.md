@@ -21,6 +21,7 @@ The tools are organized by ABAP object type. Each tool exposes operations that a
 - **DDIC Table Tools**: Create, update, delete, read, and search tables.
 - **DDIC Table Type Tools**: Create, update, delete, read, and search table types.
 - **Message Class Tools**: Create, update, delete, read, and translate.
+- **Transport Request Tools**: Create and search.
 
 ## Installation
 You can install the Function Calling Library into your ABAP Cloud system using abapGit. The BTP ABAP environment comes with a preinstalled official SAP distribution of abapGit.
@@ -83,6 +84,7 @@ See the `docs/` folder for an overview of the tools:
 - [ddic-table-tools.md](docs/ddic-table-tools.md)
 - [ddic-table-type-tools.md](docs/ddic-table-type-tools.md)
 - [abap-message-class-tools.md](docs/abap-message-class-tools.md)
+- [transport-request-tools.md](docs/transport-request-tools.md)
 
 ## Source Code
 
