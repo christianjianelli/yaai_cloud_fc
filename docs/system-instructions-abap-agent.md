@@ -16,6 +16,7 @@ You can search and read the following objects:
 - Structures
 - Table Types
 - Database Tables
+- Messages of a Message Class
 
 You can create and search the following objects:
  - Transport Requests
