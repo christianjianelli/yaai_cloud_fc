@@ -15,10 +15,10 @@ CLASS ycl_aaic_data_element_tools DEFINITION
                 i_data_type         TYPE yde_aaic_fc_data_type OPTIONAL
                 i_length            TYPE yde_aaic_fc_length OPTIONAL
                 i_decimals          TYPE yde_aaic_fc_decimals OPTIONAL
-                i_label_short       TYPE yde_aaic_fc_short_label OPTIONAL
-                i_label_medium      TYPE yde_aaic_fc_medium_label OPTIONAL
-                i_label_long        TYPE yde_aaic_fc_long_label OPTIONAL
-                i_label_heading     TYPE yde_aaic_fc_heading_label OPTIONAL
+                i_label_short       TYPE yde_aaic_fc_short_label
+                i_label_medium      TYPE yde_aaic_fc_medium_label
+                i_label_long        TYPE yde_aaic_fc_long_label
+                i_label_heading     TYPE yde_aaic_fc_heading_label
                 i_transport_request TYPE yde_aaic_fc_transport_request
                 i_package           TYPE yde_aaic_fc_package
       RETURNING VALUE(r_response)   TYPE string.
@@ -228,6 +228,10 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
       r_response = |Data Element Name: { lo_data_element->name }{ cl_abap_char_utilities=>newline }|.
       r_response = |{ r_response }Description: { l_short_description }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }Label short: { lo_content->get_short_field_label( )-text }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }Label medium: { lo_content->get_medium_field_label( )-text }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }Label long: { lo_content->get_long_field_label( )-text }{ cl_abap_char_utilities=>newline }|.
+      r_response = |{ r_response }Label heading: { lo_content->get_heading_field_label( )-text }{ cl_abap_char_utilities=>newline }|.
 
       IF lo_domain IS BOUND.
         r_response = |{ r_response }Domain Name: { lo_domain->name }{ cl_abap_char_utilities=>newline }|.
@@ -425,7 +429,11 @@ CLASS ycl_aaic_data_element_tools IMPLEMENTATION.
 
     IF i_data_element_name IS NOT INITIAL.
 
-      DATA(l_data_element_name) = |%{ condense( to_upper( i_data_element_name ) ) }%|.
+      DATA(l_data_element_name) = i_data_element_name.
+
+      REPLACE ALL OCCURRENCES OF '*' IN l_data_element_name WITH ''.
+
+      l_data_element_name = |%{ condense( to_upper( l_data_element_name ) ) }%|.
 
       DATA(lo_name_filter) = xco_cp_abap_repository=>object_name->get_filter( xco_cp_abap_sql=>constraint->contains_pattern( l_data_element_name ) ).
 
